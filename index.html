@@ -1,0 +1,1302 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
+<title>수업 참관록</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --pk:#F472B6;--pk2:#FBCFE8;--pk3:#FCE7F3;
+  --pu:#8B5CF6;--pu2:#DDD6FE;--pu3:#EDE9FE;
+  --sk:#38BDF8;--sk2:#BAE6FD;--sk3:#E0F2FE;
+  --gn:#10B981;--gn2:#A7F3D0;--gn3:#D1FAE5;
+  --am:#F59E0B;--am2:#FDE68A;--am3:#FEF3C7;
+  --bg:#FAFAFA;--white:#FFFFFF;
+  --txt:#1E1B4B;--txt2:#6B7280;--txt3:#9CA3AF;
+  --bd:#E5E7EB;--bd2:rgba(139,92,246,0.15);
+  --r:16px;--r2:12px;--r3:8px;
+  --sh:0 1px 3px rgba(0,0,0,0.06),0 4px 16px rgba(0,0,0,0.04);
+  --sh2:0 4px 24px rgba(139,92,246,0.15);
+}
+html,body{height:100%;font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--txt);font-size:14px;overflow:hidden}
+.app{display:flex;flex-direction:column;height:100vh;max-width:480px;margin:0 auto;background:var(--white);position:relative;box-shadow:0 0 40px rgba(0,0,0,0.08)}
+
+/* ── 헤더 ── */
+.hdr{flex-shrink:0;padding:0 16px;background:var(--white);border-bottom:1px solid var(--bd);position:relative}
+.hdr-top{display:flex;align-items:center;justify-content:space-between;padding:12px 0 10px}
+.hdr-info{flex:1;min-width:0}
+.hdr-title{font-size:15px;font-weight:800;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:6px}
+.hdr-title .dot{width:8px;height:8px;border-radius:50%;background:linear-gradient(135deg,var(--pk),var(--pu));flex-shrink:0}
+.hdr-sub{font-size:10px;color:var(--txt3);margin-top:2px}
+.hdr-chips{display:flex;gap:5px;padding-bottom:10px;overflow-x:auto;scrollbar-width:none}
+.hdr-chips::-webkit-scrollbar{display:none}
+.chip{display:inline-flex;align-items:center;gap:3px;padding:4px 10px;border-radius:20px;font-size:10px;font-weight:600;white-space:nowrap;background:var(--pu3);color:var(--pu)}
+.chip i{font-size:12px}
+.mode-btn{background:linear-gradient(135deg,var(--pk),var(--pu));border:none;color:#fff;border-radius:10px;padding:7px 12px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:4px;flex-shrink:0;box-shadow:var(--sh2)}
+
+/* ── 네비 ── */
+.nav{display:flex;background:var(--white);border-top:1px solid var(--bd);flex-shrink:0;position:relative}
+.nav::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,var(--pk2),var(--pu2),var(--sk2))}
+.nb{flex:1;padding:8px 2px 10px;border:none;background:none;cursor:pointer;font-size:9px;font-weight:600;color:var(--txt3);display:flex;flex-direction:column;align-items:center;gap:3px;transition:all .2s;font-family:inherit;position:relative}
+.nb i{font-size:18px;transition:all .2s}
+.nb.on{color:var(--pu)}
+.nb.on i{transform:scale(1.1)}
+.nb.on::after{content:'';position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:20px;height:3px;background:linear-gradient(90deg,var(--pk),var(--pu));border-radius:3px 3px 0 0}
+
+/* ── 바디 ── */
+.body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.pg{display:none;padding:16px 16px 24px;animation:fadeIn .2s ease}
+.pg.on{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+/* ── 카드 ── */
+.card{background:var(--white);border-radius:var(--r);padding:16px;margin-bottom:12px;border:1px solid var(--bd);box-shadow:var(--sh)}
+.card-hd{font-size:13px;font-weight:700;color:var(--txt);margin-bottom:12px;display:flex;align-items:center;gap:7px}
+.card-hd i{font-size:16px;color:var(--pu)}
+
+/* ── 폼 ── */
+.fg{margin-bottom:12px}
+.lbl{font-size:11px;font-weight:700;color:var(--txt2);margin-bottom:5px;display:block}
+.inp{width:100%;padding:10px 12px;border:1.5px solid var(--bd);border-radius:var(--r2);font-size:13px;color:var(--txt);background:var(--white);outline:none;font-family:inherit;transition:all .2s;-webkit-appearance:none}
+.inp:focus{border-color:var(--pu);background:var(--pu3);box-shadow:0 0 0 3px rgba(139,92,246,0.08)}
+.sel{appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%238B5CF6' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:30px}
+textarea.inp{resize:vertical;min-height:60px;line-height:1.65}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+
+/* ── 버튼 ── */
+.btn{padding:11px 16px;border:none;border-radius:var(--r2);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .2s;display:inline-flex;align-items:center;justify-content:center;gap:6px;-webkit-appearance:none}
+.btn-w{width:100%}
+.btn-pri{background:linear-gradient(135deg,var(--pk),var(--pu));color:#fff;box-shadow:0 4px 15px rgba(139,92,246,0.3)}
+.btn-pri:active{transform:scale(.97);box-shadow:none}
+.btn-sec{background:var(--pu3);color:var(--pu);border:1.5px solid var(--pu2)}
+.btn-out{background:transparent;color:var(--pu);border:1.5px solid var(--pu)}
+.btn-red{background:#FEF2F2;color:#EF4444;border:1.5px solid #FECACA}
+.btn-grn{background:var(--gn3);color:var(--gn);border:1.5px solid var(--gn2)}
+.btn-am{background:var(--am3);color:var(--am);border:1.5px solid var(--am2)}
+.btn-sm{padding:6px 12px;font-size:11px;border-radius:var(--r3)}
+
+/* ── 배지 ── */
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700}
+.b-pk{background:var(--pk3);color:var(--pk)} .b-pu{background:var(--pu3);color:var(--pu)}
+.b-sk{background:var(--sk3);color:var(--sk)} .b-gn{background:var(--gn3);color:var(--gn)}
+.b-am{background:var(--am3);color:var(--am)}
+
+/* ── 통계 ── */
+.stat-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px}
+.stat-c{background:var(--white);border:1px solid var(--bd);border-radius:var(--r2);padding:12px 8px;text-align:center;box-shadow:var(--sh)}
+.stat-n{font-size:22px;font-weight:800}
+.stat-l{font-size:9px;color:var(--txt3);margin-top:2px;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+
+/* ── 공지 ── */
+.notice{background:linear-gradient(135deg,#FDF2F8,#F5F3FF);border:1px solid var(--pu2);border-radius:var(--r);padding:14px;margin-bottom:12px}
+.notice-title{font-size:12px;font-weight:700;color:var(--pu);margin-bottom:6px;display:flex;align-items:center;gap:5px}
+.notice-body{font-size:11px;color:var(--txt2);line-height:2.1}
+
+/* ── 유형 선택 ── */
+.type-wrap{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:16px 0}
+.type-card{border:2px solid var(--bd);border-radius:var(--r);padding:20px 12px;text-align:center;cursor:pointer;background:var(--white);transition:all .25s;position:relative;overflow:hidden}
+.type-card::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,var(--pk3),var(--pu3));opacity:0;transition:opacity .25s}
+.type-card:hover::before,.type-card.sel::before{opacity:1}
+.type-card.sel{border-color:var(--pu);box-shadow:var(--sh2)}
+.type-card>*{position:relative}
+.type-icon{font-size:32px;margin-bottom:8px;display:block}
+.type-name{font-size:12px;font-weight:700;color:var(--txt)}
+.type-desc{font-size:10px;color:var(--txt3);margin-top:4px;line-height:1.5}
+
+/* ── 스텝 ── */
+.step-bar{display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:14px}
+.sd{width:8px;height:8px;border-radius:50%;background:var(--bd);transition:all .3s}
+.sd.on{background:linear-gradient(135deg,var(--pk),var(--pu));width:24px;border-radius:4px}
+
+/* ── 배너 ── */
+.banner{border-radius:var(--r2);padding:13px;margin-bottom:12px;font-size:11px;line-height:1.85;border-left:4px solid}
+.banner-parent{background:var(--pk3);border-color:var(--pk);color:var(--txt2)}
+.banner-peer{background:var(--am3);border-color:var(--am);color:var(--txt2)}
+
+/* ── 체크리스트 ── */
+.ck-wrap{border:1px solid var(--bd);border-radius:var(--r2);overflow:hidden;margin-bottom:10px}
+.ck-sec-hd{background:linear-gradient(90deg,var(--pu3),var(--pk3));padding:8px 12px;font-size:10px;font-weight:700;color:var(--pu)}
+.ck-row{display:flex;align-items:center;gap:6px;padding:9px 10px;border-top:1px solid var(--bd);background:var(--white)}
+.ck-row:hover{background:#FAFAFA}
+.ck-num{width:18px;font-size:10px;font-weight:700;color:var(--pu);flex-shrink:0;text-align:center}
+.ck-q{flex:1;font-size:11px;color:var(--txt);line-height:1.5}
+.ck-btns{display:flex;gap:3px;flex-shrink:0}
+.ro{width:26px;height:26px;border-radius:50%;border:1.5px solid var(--bd);background:var(--white);cursor:pointer;font-size:10px;font-weight:700;color:var(--txt3);display:flex;align-items:center;justify-content:center;transition:all .2s;flex-shrink:0}
+.ro.s4{background:var(--pu);color:#fff;border-color:var(--pu)}
+.ro.s3{background:var(--sk);color:#fff;border-color:var(--sk)}
+.ro.s2{background:var(--am);color:#fff;border-color:var(--am)}
+.ro.s1{background:var(--pk);color:#fff;border-color:var(--pk)}
+
+/* ── 리스트 아이템 ── */
+.li{background:var(--white);border:1px solid var(--bd);border-radius:var(--r);padding:13px;margin-bottom:9px;box-shadow:var(--sh)}
+.li-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.li-title{font-size:13px;font-weight:700;color:var(--txt)}
+.li-sub{font-size:10px;color:var(--txt3);margin-top:3px;line-height:1.7}
+.li-acts{display:flex;gap:5px;margin-top:10px;flex-wrap:wrap}
+
+/* ── 참관록 카드 ── */
+.obs-li{background:var(--white);border:1px solid var(--bd);border-radius:var(--r);padding:13px;margin-bottom:9px;box-shadow:var(--sh)}
+.obs-type-tag{display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:20px;font-size:9px;font-weight:700;margin-top:4px}
+
+/* ── QR ── */
+.qr-wrap{display:flex;flex-direction:column;align-items:center;padding:8px}
+.qr-box{width:190px;height:190px;background:var(--white);border-radius:var(--r);border:3px solid var(--pu);display:flex;align-items:center;justify-content:center;padding:10px;box-shadow:var(--sh2)}
+.qr-url{font-size:9px;color:var(--txt3);margin-top:10px;word-break:break-all;text-align:center;background:var(--pu3);padding:8px 12px;border-radius:var(--r3);width:100%}
+
+/* ── 업로드 존 ── */
+.upload-zone{border:2px dashed var(--pu2);border-radius:var(--r2);padding:20px;text-align:center;cursor:pointer;transition:all .2s;background:var(--pu3)}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--pu);background:#EDE9FE}
+.upload-zone input{display:none}
+
+/* ── PDF 뷰어 ── */
+.pdf-tb{display:flex;align-items:center;justify-content:space-between;background:#1E1B4B;padding:8px 12px;border-radius:var(--r2) var(--r2) 0 0}
+.pdf-tb span{color:#A5B4FC;font-size:11px;font-weight:600}
+.pdf-tb button{background:rgba(255,255,255,0.15);border:none;color:#fff;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;font-family:inherit;font-weight:600}
+
+/* ── 완료 화면 ── */
+.done-wrap{text-align:center;padding:48px 20px}
+.done-icon{font-size:60px;margin-bottom:16px;animation:bounce .6s ease}
+@keyframes bounce{0%,100%{transform:scale(1)}50%{transform:scale(1.15)}}
+.done-title{font-size:20px;font-weight:800;color:var(--txt);margin-bottom:8px}
+.done-sub{font-size:12px;color:var(--txt3);line-height:1.9}
+
+/* ── 오버레이·모달 ── */
+.overlay{position:fixed;inset:0;background:rgba(30,27,75,0.4);z-index:500;display:none;align-items:flex-end;justify-content:center;backdrop-filter:blur(2px)}
+.overlay.open{display:flex}
+.modal{background:var(--white);border-radius:var(--r) var(--r) 0 0;padding:20px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;box-shadow:0 -8px 40px rgba(0,0,0,0.15);animation:slideUp .3s ease}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:none}}
+.modal-bar{width:36px;height:4px;background:var(--bd);border-radius:2px;margin:0 auto 16px}
+.modal-title{font-size:15px;font-weight:800;color:var(--txt);margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.modal-title i{color:var(--pu);font-size:18px}
+
+/* ── 토스트 ── */
+.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(10px);background:var(--txt);color:#fff;padding:10px 18px;border-radius:30px;font-size:12px;font-weight:600;opacity:0;transition:all .3s;z-index:9999;white-space:nowrap;pointer-events:none;box-shadow:0 4px 20px rgba(0,0,0,0.2)}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ── 로딩 ── */
+.loading{position:fixed;inset:0;background:linear-gradient(135deg,#FDF2F8,#F5F3FF,#EFF6FF);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9000;transition:opacity .4s}
+.loading.hide{opacity:0;pointer-events:none}
+.loading-icon{font-size:48px;margin-bottom:12px;animation:pulse 1.5s ease infinite}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+.spin{width:32px;height:32px;border:3px solid var(--pu2);border-top-color:var(--pu);border-radius:50%;animation:spin .7s linear infinite;margin-top:14px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── 관리자 편집 입력 ── */
+.edit-section{background:linear-gradient(135deg,#F5F3FF,#FDF2F8);border-radius:var(--r);padding:14px;margin-bottom:12px;border:1px solid var(--pu2)}
+
+/* 필터 탭 */
+.filter-tabs{display:flex;gap:5px;margin-bottom:11px}
+.ftab{flex:1;padding:7px 4px;border:1.5px solid var(--bd);border-radius:var(--r3);background:var(--white);cursor:pointer;font-size:10px;font-weight:700;color:var(--txt3);text-align:center;font-family:inherit;transition:all .2s}
+.ftab.on{border-color:var(--pu);background:var(--pu3);color:var(--pu)}
+
+@media print{.nav,.hdr,.mode-btn,.btn,.overlay,.toast,.loading{display:none!important}.app{height:auto}.body{overflow:visible}.pg{display:none!important}.pg.print-show{display:block!important}}
+</style>
+</head>
+<body>
+
+<div class="loading" id="loading">
+  <div class="loading-icon">🌸</div>
+  <div style="font-size:16px;font-weight:800;color:var(--txt)">수업 참관록</div>
+  <div style="font-size:11px;color:var(--txt3);margin-top:4px" id="loading-msg">데이터 불러오는 중...</div>
+  <div class="spin"></div>
+</div>
+
+<div class="app">
+
+  <!-- 헤더 -->
+  <div class="hdr">
+    <div class="hdr-top">
+      <div class="hdr-info">
+        <div class="hdr-title">
+          <div class="dot"></div>
+          <span id="hdr-title">수업 참관록</span>
+        </div>
+        <div class="hdr-sub" id="hdr-sub">학교명 · 날짜 미설정</div>
+      </div>
+      <button class="mode-btn" onclick="openModal('modal-mode')">
+        <i class="ti ti-settings" style="font-size:13px"></i>
+        <span id="mode-label">참관자</span>
+      </button>
+    </div>
+    <div class="hdr-chips">
+      <div class="chip"><i class="ti ti-map-pin"></i><span id="chip-place">장소 미설정</span></div>
+      <div class="chip" id="chip-conn" style="background:var(--gn3);color:var(--gn)"><i class="ti ti-circle-check"></i><span>로컬 저장</span></div>
+    </div>
+  </div>
+
+  <!-- 네비 -->
+  <nav class="nav">
+    <button class="nb on" onclick="goPage('home',this)"><i class="ti ti-home-2"></i>홈</button>
+    <button class="nb" onclick="goPage('lessons',this)"><i class="ti ti-books"></i>지도안</button>
+    <button class="nb" onclick="goPage('observe',this)"><i class="ti ti-writing"></i>참관록</button>
+    <button class="nb" id="nb-admin" style="display:none" onclick="goPage('admin',this)"><i class="ti ti-shield-check"></i>관리</button>
+    <button class="nb" onclick="goPage('qr',this)"><i class="ti ti-qrcode"></i>QR</button>
+  </nav>
+
+  <div class="body" id="main-body">
+
+    <!-- ═══ 홈 ═══ -->
+    <div class="pg on" id="pg-home">
+      <div class="notice">
+        <div class="notice-title"><i class="ti ti-speakerphone"></i>공개수업 안내</div>
+        <div class="notice-body" id="home-notice">로딩 중...</div>
+      </div>
+      <div class="stat-row">
+        <div class="stat-c"><div class="stat-n" style="color:var(--pu)" id="st-l">0</div><div class="stat-l">지도안</div></div>
+        <div class="stat-c"><div class="stat-n" style="color:var(--pk)" id="st-o">0</div><div class="stat-l">참관록</div></div>
+        <div class="stat-c"><div class="stat-n" style="color:var(--gn)" id="st-t">0</div><div class="stat-l">교사</div></div>
+      </div>
+      <div class="card">
+        <div class="card-hd"><i class="ti ti-clock-hour-4"></i>오늘 수업 시간표</div>
+        <div id="home-sched"><div style="text-align:center;padding:20px;color:var(--txt3);font-size:12px"><i class="ti ti-calendar-off" style="font-size:32px;display:block;margin-bottom:8px"></i>등록된 수업이 없습니다</div></div>
+      </div>
+      <div class="card">
+        <div class="card-hd"><i class="ti ti-info-circle"></i>이용 안내</div>
+        <div style="font-size:11px;color:var(--txt2);line-height:2.3">
+          📚 <b style="color:var(--pu)">지도안 탭</b> — 수업 지도안 열람 (PDF 뷰어 포함)<br>
+          ✏️ <b style="color:var(--pu)">참관록 탭</b> — 학부모·동료교사 참관록 작성<br>
+          📱 <b style="color:var(--pu)">QR 탭</b> — 학부모·동료교사 안내 QR 생성<br>
+          🔐 <b style="color:var(--pu)">관리자</b> — 정보 편집·취합·PDF 출력
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ 지도안 ═══ -->
+    <div class="pg" id="pg-lessons">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div style="font-size:15px;font-weight:800">📚 지도안 목록</div>
+        <div id="lesson-add-btn" style="display:none">
+          <button class="btn btn-pri btn-sm" onclick="openModal('modal-lesson')"><i class="ti ti-plus"></i>등록</button>
+        </div>
+      </div>
+      <div id="lessons-list"><div style="text-align:center;padding:32px;color:var(--txt3);font-size:12px"><i class="ti ti-book-off" style="font-size:36px;display:block;margin-bottom:8px"></i>등록된 지도안이 없습니다</div></div>
+    </div>
+
+    <!-- ═══ 참관록 ═══ -->
+    <div class="pg" id="pg-observe">
+
+      <!-- 유형 선택 -->
+      <div id="ob-type" style="padding-top:4px">
+        <div style="font-size:15px;font-weight:800;text-align:center;margin-bottom:4px">참관록 유형 선택</div>
+        <div style="font-size:11px;color:var(--txt3);text-align:center">해당하는 유형을 선택해 주세요</div>
+        <div class="type-wrap">
+          <div class="type-card" onclick="selectType('parent')">
+            <span class="type-icon">👨‍👩‍👧</span>
+            <div class="type-name">학부모 참관록</div>
+            <div class="type-desc">공개수업일<br>학부모 참관용</div>
+          </div>
+          <div class="type-card" onclick="selectType('peer')">
+            <span class="type-icon">👩‍🏫</span>
+            <div class="type-name">동료장학 참관록</div>
+            <div class="type-desc">교원 상호<br>수업 참관용</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 스텝1 -->
+      <div id="ob-s1" style="display:none">
+        <div class="step-bar"><div class="sd on"></div><div class="sd"></div><div class="sd"></div></div>
+        <div class="card">
+          <div class="card-hd"><i class="ti ti-user-circle"></i>참관자 정보</div>
+          <div id="ob-banner"></div>
+          <div class="fg"><label class="lbl">참관 수업</label>
+            <select class="inp sel" id="ob-lesson-sel"><option value="">수업을 선택하세요 (선택사항)</option></select>
+          </div>
+          <div class="grid2">
+            <div class="fg"><label class="lbl">참관 일시</label><input class="inp" id="ob-date" type="date"></div>
+            <div class="fg"><label class="lbl">교시</label>
+              <select class="inp sel" id="ob-period"><option value="">선택</option>
+                <option>1교시</option><option>2교시</option><option>3교시</option>
+                <option>4교시</option><option>5교시</option><option>6교시</option>
+              </select>
+            </div>
+          </div>
+          <div id="ob-field-parent">
+            <div class="fg"><label class="lbl">학부모 성명 *</label><input class="inp" id="ob-pname" placeholder="홍길동"></div>
+            <div class="fg"><label class="lbl">자녀 학년 · 반 *</label>
+              <div class="grid2">
+                <select class="inp sel" id="ob-grade"><option value="">학년</option>
+                  <option>1학년</option><option>2학년</option><option>3학년</option>
+                  <option>4학년</option><option>5학년</option><option>6학년</option>
+                </select>
+                <select class="inp sel" id="ob-cls"><option value="">반</option>
+                  <option>1반</option><option>2반</option><option>3반</option><option>4반</option><option>5반</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <div id="ob-field-peer" style="display:none">
+            <div class="fg"><label class="lbl">참관자 성명 *</label><input class="inp" id="ob-tname" placeholder="홍길동"></div>
+            <div class="fg"><label class="lbl">소속</label><input class="inp" id="ob-belong" placeholder="○○초 3학년 담임"></div>
+          </div>
+          <button class="btn btn-pri btn-w" onclick="obNext(1)">다음 <i class="ti ti-arrow-right"></i></button>
+        </div>
+      </div>
+
+      <!-- 스텝2 -->
+      <div id="ob-s2" style="display:none">
+        <div class="step-bar"><div class="sd"></div><div class="sd on"></div><div class="sd"></div></div>
+        <div class="card">
+          <div class="card-hd"><i class="ti ti-clipboard-check"></i>학습 태도 평가</div>
+          <div style="display:flex;justify-content:flex-end;gap:5px;margin-bottom:10px">
+            <span style="font-size:9px;color:var(--txt3);display:flex;align-items:center;gap:10px">
+              <span><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:var(--pu);vertical-align:middle;margin-right:3px"></span>④매우그렇다</span>
+              <span><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:var(--sk);vertical-align:middle;margin-right:3px"></span>③보통</span>
+              <span><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:var(--am);vertical-align:middle;margin-right:3px"></span>②아니다</span>
+              <span><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:var(--pk);vertical-align:middle;margin-right:3px"></span>①전혀</span>
+            </span>
+          </div>
+          <div class="ck-wrap" id="ck-wrap"></div>
+          <div class="grid2" style="margin-top:10px">
+            <button class="btn btn-sec" onclick="obBack(2)"><i class="ti ti-arrow-left"></i> 이전</button>
+            <button class="btn btn-pri" onclick="obNext(2)">다음 <i class="ti ti-arrow-right"></i></button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 스텝3 -->
+      <div id="ob-s3" style="display:none">
+        <div class="step-bar"><div class="sd"></div><div class="sd"></div><div class="sd on"></div></div>
+        <div class="card">
+          <div class="card-hd"><i class="ti ti-message-heart"></i>참관 소감</div>
+          <div class="fg"><label class="lbl">참관 소감 *</label>
+            <textarea class="inp" id="ob-comment" rows="6" placeholder="수업을 참관하시면서 느끼신 점과 소감을 자유롭게 적어주세요."></textarea>
+          </div>
+          <div id="peer-extra" style="display:none">
+            <div class="fg"><label class="lbl">수업의 강점</label>
+              <textarea class="inp" id="ob-strength" rows="3" placeholder="인상적이었던 수업 장면, 교수법, 학생 반응 등"></textarea>
+            </div>
+            <div class="fg"><label class="lbl">개선 제안 (선택)</label>
+              <textarea class="inp" id="ob-suggest" rows="3" placeholder="더 나아지면 좋겠다고 생각하는 부분"></textarea>
+            </div>
+          </div>
+          <div class="grid2">
+            <button class="btn btn-sec" onclick="obBack(3)"><i class="ti ti-arrow-left"></i> 이전</button>
+            <button class="btn btn-pri" id="submit-btn" onclick="submitObs()"><i class="ti ti-send"></i> 제출</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 완료 -->
+      <div id="ob-done" style="display:none">
+        <div class="done-wrap">
+          <div class="done-icon" id="done-icon">🌸</div>
+          <div class="done-title">제출 완료!</div>
+          <div class="done-sub">참관록이 성공적으로 저장되었습니다.<br>소중한 의견 감사드립니다.</div>
+          <div style="display:flex;gap:8px;justify-content:center;margin-top:20px">
+            <button class="btn btn-sec" onclick="resetObs()"><i class="ti ti-plus"></i> 새 참관록</button>
+            <button class="btn btn-out" onclick="goPage('home',document.querySelector('.nb'))"><i class="ti ti-home-2"></i> 홈으로</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ 관리자 ═══ -->
+    <div class="pg" id="pg-admin">
+      <div style="font-size:15px;font-weight:800;margin-bottom:12px">🔐 관리자 메뉴</div>
+
+      <!-- 헤더 편집 -->
+      <div class="card">
+        <div class="card-hd"><i class="ti ti-pencil"></i>공개수업 정보 편집</div>
+        <div class="edit-section">
+          <div class="fg"><label class="lbl">행사 제목</label><input class="inp" id="ed-title" placeholder="2026학년도 공개수업의 날"></div>
+          <div class="fg"><label class="lbl">학교명</label><input class="inp" id="ed-school" placeholder="○○초등학교"></div>
+          <div class="grid2">
+            <div class="fg"><label class="lbl">날짜</label><input class="inp" id="ed-date" placeholder="2026.05.29(금)"></div>
+            <div class="fg"><label class="lbl">장소</label><input class="inp" id="ed-place" placeholder="각 학급 교실"></div>
+          </div>
+          <div class="fg"><label class="lbl">안내 메시지</label><textarea class="inp" id="ed-msg" rows="2" placeholder="추가 안내사항"></textarea></div>
+        </div>
+        <button class="btn btn-pri btn-w" onclick="saveInfo()"><i class="ti ti-device-floppy"></i> 저장</button>
+      </div>
+
+      <!-- 참관록 취합 -->
+      <div class="card">
+        <div class="card-hd"><i class="ti ti-files"></i>제출된 참관록 <span style="background:var(--pu3);color:var(--pu);padding:2px 8px;border-radius:20px;font-size:11px;margin-left:4px" id="obs-count">0</span></div>
+        <div class="filter-tabs">
+          <button class="ftab on" id="f-all" onclick="filterObs('all')">전체</button>
+          <button class="ftab" id="f-parent" onclick="filterObs('parent')">👨‍👩‍👧 학부모</button>
+          <button class="ftab" id="f-peer" onclick="filterObs('peer')">👩‍🏫 동료장학</button>
+        </div>
+        <div id="admin-obs-list"></div>
+        <div class="grid2" style="margin-top:10px">
+          <button class="btn btn-grn" onclick="exportAllPDF()"><i class="ti ti-file-type-pdf"></i> 전체 PDF</button>
+          <button class="btn btn-am" onclick="exportTeacherPDF()"><i class="ti ti-user-check"></i> 교사별 PDF</button>
+        </div>
+      </div>
+
+      <!-- 지도안 관리 -->
+      <div class="card">
+        <div class="card-hd"><i class="ti ti-book-2"></i>지도안 관리</div>
+        <button class="btn btn-sec btn-w" style="margin-bottom:10px" onclick="openModal('modal-lesson')"><i class="ti ti-plus"></i> 지도안 등록</button>
+        <div id="admin-lesson-list"></div>
+      </div>
+
+      <!-- 비밀번호 -->
+      <div class="card">
+        <div class="card-hd"><i class="ti ti-lock"></i>비밀번호 변경</div>
+        <div class="grid2" style="margin-bottom:8px">
+          <div><label class="lbl">새 비밀번호</label><input class="inp" id="new-pw" type="password"></div>
+          <div><label class="lbl">확인</label><input class="inp" id="new-pw2" type="password"></div>
+        </div>
+        <button class="btn btn-out btn-w" onclick="changePw()"><i class="ti ti-key"></i> 변경</button>
+      </div>
+
+      <!-- 데이터 관리 -->
+      <div class="card">
+        <div class="card-hd"><i class="ti ti-alert-triangle"></i>데이터 관리</div>
+        <div class="grid2">
+          <button class="btn btn-red" onclick="clearAllObs()"><i class="ti ti-trash"></i> 참관록 삭제</button>
+          <button class="btn btn-out" onclick="exportCSV()"><i class="ti ti-table-export"></i> CSV 내보내기</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ QR ═══ -->
+    <div class="pg" id="pg-qr">
+      <div style="font-size:15px;font-weight:800;margin-bottom:12px">📱 QR 코드 안내</div>
+      <div class="filter-tabs">
+        <button class="ftab on" id="qt-all" onclick="switchQR('all')">전체 접속</button>
+        <button class="ftab" id="qt-parent" onclick="switchQR('parent')">👨‍👩‍👧 학부모용</button>
+        <button class="ftab" id="qt-peer" onclick="switchQR('peer')">👩‍🏫 동료장학용</button>
+      </div>
+      <div class="card">
+        <div class="card-hd"><i class="ti ti-qrcode"></i>QR 코드</div>
+        <div class="qr-wrap">
+          <div class="qr-box" id="qr-box"></div>
+          <div class="qr-url" id="qr-url">생성 중...</div>
+        </div>
+        <div class="grid2" style="margin-top:10px">
+          <button class="btn btn-sec" onclick="genQR()"><i class="ti ti-refresh"></i> 재생성</button>
+          <button class="btn btn-pri" onclick="shareLink()"><i class="ti ti-share"></i> 공유</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-hd"><i class="ti ti-news"></i>안내문 미리보기</div>
+        <div class="notice">
+          <div class="notice-title" id="qr-ttl"><i class="ti ti-speakerphone"></i>공개수업 안내</div>
+          <div class="notice-body" id="qr-body">로딩 중...</div>
+        </div>
+        <button class="btn btn-out btn-w" onclick="window.print()"><i class="ti ti-printer"></i> 안내문 인쇄</button>
+      </div>
+    </div>
+
+  </div><!-- /body -->
+</div><!-- /app -->
+
+<!-- ── 모달들 ── -->
+<!-- 모드 선택 -->
+<div class="overlay" id="modal-mode">
+  <div class="modal">
+    <div class="modal-bar"></div>
+    <div class="modal-title"><i class="ti ti-shield-lock"></i>접속 모드 선택</div>
+    <button class="btn btn-sec btn-w" style="margin-bottom:8px" onclick="setMode('visitor');closeModal('modal-mode')"><i class="ti ti-user"></i> 참관자 모드</button>
+    <button class="btn btn-out btn-w" onclick="closeModal('modal-mode');openModal('modal-pw')"><i class="ti ti-shield"></i> 관리자 로그인</button>
+    <button class="btn" style="width:100%;margin-top:8px;background:none;color:var(--txt3);font-size:12px" onclick="closeModal('modal-mode')">취소</button>
+  </div>
+</div>
+
+<!-- 비밀번호 -->
+<div class="overlay" id="modal-pw">
+  <div class="modal">
+    <div class="modal-bar"></div>
+    <div class="modal-title"><i class="ti ti-lock"></i>관리자 비밀번호</div>
+    <div class="fg"><input class="inp" id="pw-inp" type="password" placeholder="비밀번호 입력" onkeydown="if(event.key==='Enter')checkPw()"></div>
+    <div style="font-size:10px;color:var(--txt3);margin-bottom:12px">기본 비밀번호: 1234</div>
+    <div class="grid2">
+      <button class="btn btn-sec" onclick="closeModal('modal-pw')">취소</button>
+      <button class="btn btn-pri" onclick="checkPw()"><i class="ti ti-login"></i> 로그인</button>
+    </div>
+  </div>
+</div>
+
+<!-- 지도안 등록 -->
+<div class="overlay" id="modal-lesson">
+  <div class="modal">
+    <div class="modal-bar"></div>
+    <div class="modal-title"><i class="ti ti-file-plus"></i>지도안 등록</div>
+    <div class="fg"><label class="lbl">담당 교사 *</label><input class="inp" id="lf-teacher" placeholder="예: 김○○"></div>
+    <div class="fg"><label class="lbl">학년·반 *</label>
+      <div class="grid2">
+        <select class="inp sel" id="lf-grade"><option value="">학년</option>
+          <option>1학년</option><option>2학년</option><option>3학년</option>
+          <option>4학년</option><option>5학년</option><option>6학년</option>
+        </select>
+        <select class="inp sel" id="lf-cls"><option value="">반</option>
+          <option>1반</option><option>2반</option><option>3반</option><option>4반</option><option>5반</option>
+        </select>
+      </div>
+    </div>
+    <div class="fg"><label class="lbl">교과 *</label>
+      <select class="inp sel" id="lf-subject"><option value="">교과</option>
+        <option>국어</option><option>수학</option><option>사회</option><option>과학</option>
+        <option>도덕</option><option>음악</option><option>미술</option><option>체육</option>
+        <option>영어</option><option>실과</option><option>창체</option>
+      </select>
+    </div>
+    <div class="fg"><label class="lbl">단원·제재 *</label><input class="inp" id="lf-unit" placeholder="예: 3. 마음을 나누며 대화해요"></div>
+    <div class="fg"><label class="lbl">학습 목표</label><textarea class="inp" id="lf-goal" rows="2" placeholder="이 차시의 학습 목표"></textarea></div>
+    <div class="fg"><label class="lbl">수업 시간·장소</label>
+      <div class="grid2">
+        <input class="inp" id="lf-time" type="time" value="09:00">
+        <select class="inp sel" id="lf-room"><option>해당 교실</option><option>음악실</option><option>과학실</option><option>체육관</option><option>컴퓨터실</option><option>미술실</option></select>
+      </div>
+    </div>
+    <div class="fg">
+      <label class="lbl">지도안 PDF (선택 · 최대 2MB)</label>
+      <div class="upload-zone" id="upload-zone"
+           onclick="document.getElementById('pdf-inp').click()"
+           ondragover="event.preventDefault();this.classList.add('drag')"
+           ondragleave="this.classList.remove('drag')"
+           ondrop="handleDrop(event)">
+        <input type="file" id="pdf-inp" accept="application/pdf" onchange="readPdf(event)">
+        <i class="ti ti-cloud-upload" style="font-size:28px;color:var(--pu);display:block;margin-bottom:6px"></i>
+        <div style="font-size:12px;font-weight:700;color:var(--pu)">클릭 또는 드래그</div>
+        <div style="font-size:10px;color:var(--txt3);margin-top:3px">PDF만 · 최대 2MB</div>
+      </div>
+      <div id="pdf-name" style="font-size:11px;color:var(--gn);margin-top:5px;display:none;font-weight:600"></div>
+    </div>
+    <div class="grid2">
+      <button class="btn btn-sec" onclick="closeModal('modal-lesson');clearPdf()">취소</button>
+      <button class="btn btn-pri" onclick="saveLesson()"><i class="ti ti-check"></i> 저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- PDF 뷰어 -->
+<div class="overlay" id="modal-pdf">
+  <div class="modal" style="padding:12px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <div style="font-size:13px;font-weight:700" id="pdf-ttl">지도안</div>
+      <button class="btn btn-sm btn-sec" onclick="closeModal('modal-pdf')"><i class="ti ti-x"></i></button>
+    </div>
+    <div style="border-radius:var(--r2);overflow:hidden;background:#1E1B4B">
+      <div class="pdf-tb">
+        <button onclick="pdfPrev()">◀ 이전</button>
+        <span id="pdf-pg">1 / 1</span>
+        <button onclick="pdfNext()">다음 ▶</button>
+      </div>
+      <canvas id="pdf-canvas" style="display:block;width:100%;height:auto"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- 참관록 상세 -->
+<div class="overlay" id="modal-obs">
+  <div class="modal">
+    <div class="modal-bar"></div>
+    <div class="modal-title"><i class="ti ti-clipboard-text"></i>참관록 상세</div>
+    <div id="obs-detail"></div>
+    <div class="grid2" style="margin-top:12px">
+      <button class="btn btn-sec" onclick="closeModal('modal-obs')">닫기</button>
+      <button class="btn btn-pri" onclick="printObs()"><i class="ti ti-printer"></i> PDF 저장</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+// ══════════════════════════════════════════════
+//  체크리스트 원본
+// ══════════════════════════════════════════════
+const CK_PARENT=[
+  {sec:'자녀의 학습 준비도 및 학습 활동',items:[
+    '내 자녀는 선생님의 말씀에 귀 기울여 듣습니까?',
+    '내 자녀는 교사와 눈 맞춤을 하며 주의 집중을 잘하고 있습니까?',
+    '교사의 안내와 지시에 적절히 따릅니까?',
+    '학습에 임하는 태도가 능동적입니까?',
+    '내 자녀는 학습 시 자신의 생각을 적극적으로 발표합니까?',
+    '바른 자세를 유지하며 스스로 학습 활동에 참여하고 있습니까?',
+    '기본 학습 자료와 학습 도구가 준비되어 있습니까?'
+  ]},
+  {sec:'자녀의 사회 적응도',items:[
+    '친구가 발표할 때 귀 기울여 경청합니까?',
+    '학습 활동 시 타인을 배려하며 협동합니까?',
+    '친구의 발표 시 격려하며 협동합니까?'
+  ]}
+];
+const CK_PEER=[
+  {sec:'교수·학습 설계',items:[
+    '학습 목표가 명확하게 제시되었습니까?',
+    '학생 수준과 흥미를 고려한 교수·학습 자료를 활용하였습니까?',
+    '도입·전개·정리의 흐름이 자연스럽게 연결되었습니까?'
+  ]},
+  {sec:'교수·학습 실행',items:[
+    '교사의 발문이 학생의 사고를 촉진하였습니까?',
+    '학생 참여 중심의 활동이 적절히 이루어졌습니까?',
+    '다양한 교수 방법 및 매체를 효과적으로 활용하였습니까?',
+    '학생 개개인에 대한 적절한 피드백이 이루어졌습니까?'
+  ]},
+  {sec:'학급 경영 및 분위기',items:[
+    '학습에 적합한 교실 환경이 조성되었습니까?',
+    '학생들이 자유롭게 의견을 표현할 수 있는 분위기였습니까?',
+    '수업 시간이 효율적으로 관리되었습니까?'
+  ]}
+];
+
+// ══════════════════════════════════════════════
+//  상태 & 저장
+// ══════════════════════════════════════════════
+const DB={
+  s(k,v){try{localStorage.setItem('obs6_'+k,JSON.stringify(v));}catch(e){}},
+  g(k,d){try{const v=localStorage.getItem('obs6_'+k);return v!==null?JSON.parse(v):d;}catch(e){return d;}}
+};
+
+const APP={
+  mode:'visitor',
+  adminPw: DB.g('adminPw','1234'),
+  info: DB.g('info',{title:'수업 참관록',school:'',date:'',place:'',msg:''}),
+  lessons: DB.g('lessons',[]),
+  observations: DB.g('observations',[]),
+  ckAns:{}, obsType:'parent',
+  currentObsId:null, qrMode:'all', obsFilter:'all',
+  pdfDoc:null, pdfPage:1,
+  pendingPdfB64:null, pendingPdfName:null
+};
+
+function save(){
+  DB.s('info',APP.info);
+  DB.s('lessons',APP.lessons);
+  DB.s('observations',APP.observations);
+  DB.s('adminPw',APP.adminPw);
+}
+
+// ══════════════════════════════════════════════
+//  초기화
+// ══════════════════════════════════════════════
+function init(){
+  // URL 파라미터로 유형 자동 선택
+  const p=new URLSearchParams(location.search).get('type');
+  renderAll(); buildCk(); genQR();
+  hideLoading();
+  if(p==='parent'||p==='peer'){
+    goPage('observe',null);
+    selectType(p);
+  }
+}
+function hideLoading(){
+  const el=document.getElementById('loading');
+  el.classList.add('hide');
+  setTimeout(()=>el.style.display='none',400);
+}
+
+// ══════════════════════════════════════════════
+//  PDF
+// ══════════════════════════════════════════════
+function handleDrop(e){
+  e.preventDefault();document.getElementById('upload-zone').classList.remove('drag');
+  const f=e.dataTransfer.files[0];
+  if(f&&f.type==='application/pdf')doReadPdf(f);else toast('❗ PDF 파일만 가능합니다');
+}
+function readPdf(e){const f=e.target.files[0];if(f)doReadPdf(f);}
+function doReadPdf(file){
+  if(file.size>2*1024*1024){toast('❗ 2MB 이하 PDF만 가능합니다');return;}
+  const r=new FileReader();
+  r.onload=ev=>{
+    APP.pendingPdfB64=ev.target.result.split(',')[1];
+    APP.pendingPdfName=file.name;
+    const el=document.getElementById('pdf-name');
+    el.textContent='✅ '+file.name;el.style.display='block';
+    toast('✅ PDF 첨부: '+file.name);
+  };r.readAsDataURL(file);
+}
+function clearPdf(){
+  APP.pendingPdfB64=null;APP.pendingPdfName=null;
+  document.getElementById('pdf-inp').value='';
+  const el=document.getElementById('pdf-name');el.style.display='none';
+}
+async function openPdfViewer(lesson){
+  if(!lesson||!lesson.pdfB64){toast('첨부된 PDF가 없습니다');return;}
+  document.getElementById('pdf-ttl').textContent=lesson.teacher+' — '+lesson.subject;
+  const bytes=atob(lesson.pdfB64),arr=new Uint8Array(bytes.length);
+  for(let i=0;i<bytes.length;i++)arr[i]=bytes.charCodeAt(i);
+  APP.pdfDoc=await pdfjsLib.getDocument({data:arr}).promise;
+  APP.pdfPage=1;renderPdfPage();openModal('modal-pdf');
+}
+async function renderPdfPage(){
+  if(!APP.pdfDoc)return;
+  const page=await APP.pdfDoc.getPage(APP.pdfPage);
+  const canvas=document.getElementById('pdf-canvas');
+  const vp=page.getViewport({scale:1.8});
+  canvas.width=vp.width;canvas.height=vp.height;
+  await page.render({canvasContext:canvas.getContext('2d'),viewport:vp}).promise;
+  document.getElementById('pdf-pg').textContent=APP.pdfPage+' / '+APP.pdfDoc.numPages;
+}
+function pdfPrev(){if(APP.pdfPage>1){APP.pdfPage--;renderPdfPage();}}
+function pdfNext(){if(APP.pdfDoc&&APP.pdfPage<APP.pdfDoc.numPages){APP.pdfPage++;renderPdfPage();}}
+
+// ══════════════════════════════════════════════
+//  체크리스트
+// ══════════════════════════════════════════════
+function buildCk(type){
+  const list=type==='peer'?CK_PEER:CK_PARENT;
+  const wrap=document.getElementById('ck-wrap');
+  let html='';
+  let n=1;
+  list.forEach(({sec,items})=>{
+    html+=`<div class="ck-sec-hd">📌 ${sec}</div>`;
+    items.forEach(item=>{
+      const i=n++;
+      html+=`<div class="ck-row">
+        <div class="ck-num">${i}</div>
+        <div class="ck-q">${item}</div>
+        <div class="ck-btns">
+          ${[4,3,2,1].map(v=>`<div class="ro" id="r${i}-${v}" onclick="setR(${i},${v})">${v}</div>`).join('')}
+        </div>
+      </div>`;
+    });
+  });
+  wrap.innerHTML=html;APP.ckAns={};
+}
+function setR(n,v){
+  APP.ckAns[n]=v;
+  [4,3,2,1].forEach(x=>{
+    const b=document.getElementById(`r${n}-${x}`);
+    if(b)b.className='ro'+(x===v?` s${v}`:'');
+  });
+}
+
+// ══════════════════════════════════════════════
+//  렌더링
+// ══════════════════════════════════════════════
+const SC={국어:'b-pk',수학:'b-sk',사회:'b-pu',과학:'b-gn',음악:'b-pk',미술:'b-pu',체육:'b-gn',영어:'b-sk',도덕:'b-pu',실과:'b-gn',창체:'b-am'};
+
+function renderAll(){
+  renderHdr();renderHome();renderStats();
+  renderLessons();renderAdminLessons();renderAdminObs();
+  renderQRNotice();fillAdminForm();
+}
+function renderHdr(){
+  const i=APP.info;
+  document.getElementById('hdr-title').textContent=i.title||'수업 참관록';
+  document.getElementById('hdr-sub').textContent=
+    [i.school,i.date].filter(Boolean).join(' · ')||'학교명 · 날짜 미설정';
+  document.getElementById('chip-place').textContent=i.place||'장소 미설정';
+}
+function renderHome(){
+  const i=APP.info;
+  document.getElementById('home-notice').innerHTML=
+    `📌 행사명: ${i.title||'미설정'}<br>📌 학교명: ${i.school||'미설정'}<br>📌 일 시: ${i.date||'미설정'}<br>📌 장 소: ${i.place||'미설정'}${i.msg?'<br>📌 안내: '+i.msg:''}`;
+  const el=document.getElementById('home-sched');
+  if(!APP.lessons.length){
+    el.innerHTML='<div style="text-align:center;padding:20px;color:var(--txt3);font-size:12px"><i class="ti ti-calendar-off" style="font-size:32px;display:block;margin-bottom:8px"></i>등록된 수업이 없습니다</div>';return;
+  }
+  el.innerHTML=[...APP.lessons].sort((a,b)=>(a.time||'').localeCompare(b.time||'')).map(l=>`
+    <div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--pu3);border-radius:var(--r2);margin-bottom:7px">
+      <div style="font-size:12px;font-weight:800;color:var(--pu);min-width:38px">${l.time||''}</div>
+      <div style="flex:1">
+        <div style="font-size:12px;font-weight:700">${l.grade} ${l.cls} <span class="badge ${SC[l.subject]||'b-pu'}">${l.subject}</span></div>
+        <div style="font-size:10px;color:var(--txt3)">${l.teacher} · ${l.room||'교실'}</div>
+      </div>
+    </div>`).join('');
+}
+function renderStats(){
+  document.getElementById('st-l').textContent=APP.lessons.length;
+  document.getElementById('st-o').textContent=APP.observations.length;
+  document.getElementById('obs-count').textContent=APP.observations.length;
+  document.getElementById('st-t').textContent=[...new Set(APP.lessons.map(l=>l.teacher))].length;
+}
+function renderLessons(){
+  const el=document.getElementById('lessons-list');
+  document.getElementById('lesson-add-btn').style.display=APP.mode==='admin'?'block':'none';
+  if(!APP.lessons.length){
+    el.innerHTML='<div style="text-align:center;padding:32px;color:var(--txt3);font-size:12px"><i class="ti ti-book-off" style="font-size:36px;display:block;margin-bottom:8px"></i>등록된 지도안이 없습니다</div>';return;
+  }
+  el.innerHTML=APP.lessons.map(l=>`
+    <div class="li">
+      <div class="li-top">
+        <div>
+          <div class="li-title">${l.teacher} — ${l.grade} ${l.cls}</div>
+          <div class="li-sub"><span class="badge ${SC[l.subject]||'b-pu'}">${l.subject}</span> ⏰ ${l.time} &nbsp; 🏫 ${l.room||'교실'}</div>
+          <div style="font-size:11px;color:var(--txt2);margin-top:5px"><b>단원:</b> ${l.unit}</div>
+          ${l.goal?`<div style="font-size:10px;color:var(--txt3);margin-top:2px">🎯 ${l.goal}</div>`:''}
+        </div>
+      </div>
+      <div class="li-acts">
+        ${l.pdfB64?`<button class="btn btn-sec btn-sm" onclick="openPdfViewer(APP.lessons.find(x=>x.id==='${l.id}'))"><i class="ti ti-file-type-pdf"></i> 지도안 보기</button>`:''}
+        ${APP.mode==='admin'?`<button class="btn btn-red btn-sm" onclick="delLesson('${l.id}')"><i class="ti ti-trash"></i> 삭제</button>`:''}
+      </div>
+    </div>`).join('');
+}
+function renderAdminLessons(){
+  const el=document.getElementById('admin-lesson-list');
+  if(!APP.lessons.length){el.innerHTML='<div style="font-size:11px;color:var(--txt3);padding:8px">등록된 지도안 없음</div>';return;}
+  el.innerHTML=APP.lessons.map(l=>`
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:9px;background:var(--pu3);border-radius:var(--r2);margin-bottom:6px">
+      <div style="font-size:11px;font-weight:600">${l.teacher} ${l.grade}${l.cls} ${l.subject} ${l.time} ${l.pdfB64?'📎':''}</div>
+      <div style="display:flex;gap:4px">
+        ${l.pdfB64?`<button class="btn btn-sec btn-sm" onclick="openPdfViewer(APP.lessons.find(x=>x.id==='${l.id}'))"><i class="ti ti-eye"></i></button>`:''}
+        <button class="btn btn-red btn-sm" onclick="delLesson('${l.id}')"><i class="ti ti-trash"></i></button>
+      </div>
+    </div>`).join('');
+}
+function renderAdminObs(){
+  const el=document.getElementById('admin-obs-list');renderStats();
+  const list=APP.obsFilter==='all'?APP.observations:APP.observations.filter(o=>o.obsType===APP.obsFilter);
+  if(!list.length){el.innerHTML='<div style="text-align:center;padding:20px;color:var(--txt3);font-size:12px"><i class="ti ti-inbox" style="font-size:28px;display:block;margin-bottom:6px"></i>없음</div>';return;}
+  el.innerHTML=list.map(o=>`
+    <div class="obs-li">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div>
+          <div style="font-size:13px;font-weight:700">${o.name}</div>
+          <div style="font-size:10px;color:var(--txt3)">${o.grade?o.grade+' '+o.cls:o.belong||''} · ${o.date||'-'} ${o.period||''}</div>
+          <div style="font-size:10px;color:var(--pu);margin-top:2px">${o.lesson?o.lesson.subject+' ('+o.lesson.teacher+')':''}</div>
+          <div style="display:flex;gap:5px;align-items:center;margin-top:4px">
+            <span class="obs-type-tag" style="background:${o.obsType==='peer'?'var(--am3)':'var(--pk3)'};color:${o.obsType==='peer'?'var(--am)':'var(--pk)'}">
+              ${o.obsType==='peer'?'👩‍🏫 동료장학':'👨‍👩‍👧 학부모'}
+            </span>
+            <span style="font-size:10px;color:var(--txt3)">평균 ${avg(o.ans)}점</span>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <button class="btn btn-sec btn-sm" onclick="viewObs('${o.id}')"><i class="ti ti-eye"></i></button>
+          <button class="btn btn-red btn-sm" onclick="delObs('${o.id}')"><i class="ti ti-trash"></i></button>
+        </div>
+      </div>
+    </div>`).join('');
+}
+function renderQRNotice(){
+  const i=APP.info;
+  document.getElementById('qr-ttl').innerHTML=`<i class="ti ti-speakerphone"></i>${i.title||'공개수업 안내'}`;
+  document.getElementById('qr-body').innerHTML=`<b>${i.school||''}</b><br>📅 ${i.date||'일시 미정'}<br>📍 ${i.place||'장소 미정'}<br><br>${i.msg||'아래 QR코드를 스캔하시면<br>참관록을 작성하실 수 있습니다.'}`;
+}
+function fillAdminForm(){
+  const i=APP.info;
+  ['title','school','date','place','msg'].forEach(k=>{
+    const el=document.getElementById('ed-'+k);if(el)el.value=i[k]||'';
+  });
+}
+
+// ══════════════════════════════════════════════
+//  네비·모드
+// ══════════════════════════════════════════════
+function goPage(p,btn){
+  document.querySelectorAll('.pg').forEach(e=>e.classList.remove('on'));
+  document.querySelectorAll('.nb').forEach(b=>b.classList.remove('on'));
+  const pg=document.getElementById('pg-'+p);if(pg)pg.classList.add('on');
+  if(btn)btn.classList.add('on');
+  if(p==='observe'){refreshSel();resetObsUI();}
+  if(p==='admin'){renderAdminObs();renderAdminLessons();}
+  if(p==='qr')genQR();
+  document.getElementById('main-body').scrollTop=0;
+}
+function checkPw(){
+  if(document.getElementById('pw-inp').value===APP.adminPw){
+    setMode('admin');closeModal('modal-pw');
+    document.getElementById('pw-inp').value='';toast('🔐 관리자 로그인 완료');
+  }else toast('❌ 비밀번호가 틀렸습니다');
+}
+function setMode(m){
+  APP.mode=m;const a=m==='admin';
+  document.getElementById('mode-label').textContent=a?'관리자':'참관자';
+  document.getElementById('nb-admin').style.display=a?'flex':'none';
+  document.getElementById('lesson-add-btn').style.display=a?'block':'none';
+  renderLessons();
+  if(!a)goPage('home',document.querySelector('.nb'));
+}
+function changePw(){
+  const p1=document.getElementById('new-pw').value;
+  const p2=document.getElementById('new-pw2').value;
+  if(!p1){toast('❗ 비밀번호를 입력하세요');return;}
+  if(p1!==p2){toast('❗ 비밀번호가 일치하지 않습니다');return;}
+  APP.adminPw=p1;save();
+  document.getElementById('new-pw').value='';document.getElementById('new-pw2').value='';
+  toast('✅ 비밀번호가 변경되었습니다');
+}
+
+// ══════════════════════════════════════════════
+//  정보 저장
+// ══════════════════════════════════════════════
+function saveInfo(){
+  APP.info={
+    title:document.getElementById('ed-title').value.trim(),
+    school:document.getElementById('ed-school').value.trim(),
+    date:document.getElementById('ed-date').value.trim(),
+    place:document.getElementById('ed-place').value.trim(),
+    msg:document.getElementById('ed-msg').value.trim()
+  };
+  save();renderHdr();renderHome();renderQRNotice();
+  toast('✅ 저장되었습니다');
+}
+
+// ══════════════════════════════════════════════
+//  지도안
+// ══════════════════════════════════════════════
+function saveLesson(){
+  const t=document.getElementById('lf-teacher').value.trim();
+  const g=document.getElementById('lf-grade').value;
+  const c=document.getElementById('lf-cls').value;
+  const s=document.getElementById('lf-subject').value;
+  const u=document.getElementById('lf-unit').value.trim();
+  if(!t||!g||!c||!s||!u){toast('❗ 필수 항목(*)을 입력하세요');return;}
+  const lesson={
+    id:Date.now()+'',teacher:t,grade:g,cls:c,subject:s,unit:u,
+    goal:document.getElementById('lf-goal').value.trim(),
+    time:document.getElementById('lf-time').value,
+    room:document.getElementById('lf-room').value
+  };
+  if(APP.pendingPdfB64){lesson.pdfB64=APP.pendingPdfB64;lesson.pdfName=APP.pendingPdfName;}
+  APP.lessons.push(lesson);save();
+  closeModal('modal-lesson');clearPdf();
+  ['lf-teacher','lf-unit','lf-goal'].forEach(id=>document.getElementById(id).value='');
+  renderAll();toast('✅ 지도안 등록 완료'+(lesson.pdfB64?' (PDF 포함)':''));
+}
+function delLesson(id){
+  if(!confirm('삭제하시겠습니까?'))return;
+  APP.lessons=APP.lessons.filter(l=>l.id!==id);
+  save();renderAll();toast('🗑️ 삭제되었습니다');
+}
+
+// ══════════════════════════════════════════════
+//  참관 유형
+// ══════════════════════════════════════════════
+function selectType(type){
+  APP.obsType=type;
+  document.getElementById('ob-type').style.display='none';
+  document.getElementById('ob-s1').style.display='block';
+  const b=document.getElementById('ob-banner');
+  if(type==='parent'){
+    b.innerHTML=`<div class="banner banner-parent"><b>👨‍👩‍👧 학부모 참관록</b><br>바쁘신 중에도 공개수업에 참관해 주셔서 감사합니다.<br><span style="color:var(--pu);font-weight:700">본 참관록은 학생 평가에 반영되지 않으며<br>수업 개선 자료로 활용됩니다.</span></div>`;
+    document.getElementById('ob-field-parent').style.display='block';
+    document.getElementById('ob-field-peer').style.display='none';
+    document.getElementById('peer-extra').style.display='none';
+  }else{
+    b.innerHTML=`<div class="banner banner-peer"><b>👩‍🏫 동료장학 참관록</b><br>수업을 참관하시고 동료 교사의 성장을 위한<br>솔직하고 따뜻한 의견을 남겨주세요.</div>`;
+    document.getElementById('ob-field-parent').style.display='none';
+    document.getElementById('ob-field-peer').style.display='block';
+    document.getElementById('peer-extra').style.display='block';
+  }
+  buildCk(type);
+}
+function resetObsUI(){
+  document.getElementById('ob-type').style.display='block';
+  ['ob-s1','ob-s2','ob-s3','ob-done'].forEach(id=>document.getElementById(id).style.display='none');
+}
+
+// ══════════════════════════════════════════════
+//  참관록 작성
+// ══════════════════════════════════════════════
+function refreshSel(){
+  const s=document.getElementById('ob-lesson-sel');
+  s.innerHTML='<option value="">수업을 선택하세요 (선택사항)</option>'+
+    APP.lessons.map(l=>`<option value="${l.id}">${l.time} · ${l.grade}${l.cls} · ${l.subject} (${l.teacher})</option>`).join('');
+}
+function obNext(step){
+  if(step===1){
+    if(APP.obsType==='parent'){
+      if(!document.getElementById('ob-pname').value.trim()){toast('❗ 학부모 성명을 입력하세요');return;}
+      if(!document.getElementById('ob-grade').value){toast('❗ 학년을 선택하세요');return;}
+    }else{
+      if(!document.getElementById('ob-tname').value.trim()){toast('❗ 성명을 입력하세요');return;}
+    }
+  }
+  document.getElementById('ob-s'+step).style.display='none';
+  document.getElementById('ob-s'+(step+1)).style.display='block';
+  document.getElementById('main-body').scrollTop=0;
+}
+function obBack(step){
+  document.getElementById('ob-s'+step).style.display='none';
+  document.getElementById('ob-s'+(step-1)).style.display='block';
+  document.getElementById('main-body').scrollTop=0;
+}
+function submitObs(){
+  const comment=document.getElementById('ob-comment').value.trim();
+  if(!comment){toast('❗ 참관 소감을 입력해 주세요');return;}
+  const btn=document.getElementById('submit-btn');
+  btn.disabled=true;btn.innerHTML='<i class="ti ti-loader-2"></i> 저장 중...';
+  const lid=document.getElementById('ob-lesson-sel').value;
+  const lesson=APP.lessons.find(l=>l.id===lid)||null;
+  const isP=APP.obsType==='parent';
+  const rec={
+    id:Date.now()+'',obsType:APP.obsType,
+    name:isP?document.getElementById('ob-pname').value.trim():document.getElementById('ob-tname').value.trim(),
+    grade:isP?document.getElementById('ob-grade').value:'',
+    cls:isP?document.getElementById('ob-cls').value:'',
+    belong:isP?'':document.getElementById('ob-belong').value.trim(),
+    date:document.getElementById('ob-date').value,
+    period:document.getElementById('ob-period').value,
+    lesson,ans:{...APP.ckAns},comment,
+    strength:document.getElementById('ob-strength').value.trim(),
+    suggest:document.getElementById('ob-suggest').value.trim(),
+    submittedAt:new Date().toLocaleString('ko-KR')
+  };
+  APP.observations.push(rec);save();
+  btn.disabled=false;btn.innerHTML='<i class="ti ti-send"></i> 제출';
+  document.getElementById('ob-s3').style.display='none';
+  document.getElementById('ob-done').style.display='block';
+  document.getElementById('done-icon').textContent=isP?'🌸':'✨';
+  document.getElementById('main-body').scrollTop=0;
+  renderStats();toast('🎉 참관록이 제출되었습니다!');
+}
+function resetObs(){
+  APP.ckAns={};
+  ['ob-pname','ob-tname','ob-belong','ob-comment','ob-strength','ob-suggest']
+    .forEach(id=>document.getElementById(id).value='');
+  ['ob-grade','ob-cls','ob-period'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('ob-done').style.display='none';
+  resetObsUI();
+}
+function avg(a){
+  if(!a)return'-';
+  const vs=Object.values(a).map(Number).filter(v=>v>0);
+  if(!vs.length)return'-';
+  return(vs.reduce((s,v)=>s+v,0)/vs.length).toFixed(1);
+}
+
+// ══════════════════════════════════════════════
+//  필터
+// ══════════════════════════════════════════════
+function filterObs(f){
+  APP.obsFilter=f;
+  ['all','parent','peer'].forEach(k=>{
+    const b=document.getElementById('f-'+k);
+    if(b)b.className='ftab'+(k===f?' on':'');
+  });renderAdminObs();
+}
+
+// ══════════════════════════════════════════════
+//  참관록 보기
+// ══════════════════════════════════════════════
+function viewObs(id){
+  const o=APP.observations.find(x=>x.id===id);if(!o)return;
+  APP.currentObsId=id;
+  const rl={4:'④ 매우 그렇다',3:'③ 보통이다',2:'② 그렇지 않다',1:'① 전혀 그렇지 않다'};
+  const ckList=o.obsType==='peer'?CK_PEER:CK_PARENT;
+  let ckh='',n=1;
+  ckList.forEach(({sec,items})=>{
+    ckh+=`<div style="background:var(--pu3);padding:6px 10px;font-size:10px;font-weight:700;color:var(--pu);margin-top:8px;border-radius:var(--r3)">${sec}</div>`;
+    items.forEach(item=>{
+      const a=o.ans?o.ans[n]:null;
+      ckh+=`<div style="display:flex;gap:6px;padding:7px 0;border-bottom:1px solid var(--bd);align-items:center">
+        <div style="font-size:10px;font-weight:700;color:var(--pu);width:16px;text-align:center">${n}</div>
+        <div style="flex:1;font-size:10px;color:var(--txt);line-height:1.5">${item}</div>
+        <div style="font-size:10px;font-weight:700;color:${a?'var(--pu)':'var(--txt3)'};white-space:nowrap;min-width:80px;text-align:right">${a?rl[a]:'미선택'}</div>
+      </div>`;n++;
+    });
+  });
+  const isP=o.obsType==='parent';
+  document.getElementById('obs-detail').innerHTML=`
+    <div style="background:linear-gradient(135deg,var(--pk3),var(--pu3));border-radius:var(--r2);padding:12px;margin-bottom:12px;text-align:center">
+      <div style="font-size:14px;font-weight:800;color:var(--pu)">${isP?'학부모 수업 참관록':'동료장학 수업 참관록'}</div>
+      <div style="font-size:11px;color:var(--txt3);margin-top:3px">${APP.info.school||''} · ${APP.info.title||''}</div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+      <div style="background:var(--pu3);border-radius:var(--r3);padding:10px">
+        <div style="font-size:9px;color:var(--pu);font-weight:700;margin-bottom:3px">${isP?'학부모명':'참관자'}</div>
+        <div style="font-size:13px;font-weight:700">${o.name}</div>
+        ${o.belong?`<div style="font-size:10px;color:var(--txt3)">${o.belong}</div>`:''}
+      </div>
+      <div style="background:var(--pu3);border-radius:var(--r3);padding:10px">
+        <div style="font-size:9px;color:var(--pu);font-weight:700;margin-bottom:3px">${isP?'자녀 학년·반':'참관일시'}</div>
+        <div style="font-size:13px;font-weight:700">${isP?o.grade+' '+o.cls:o.date+' '+o.period}</div>
+        ${isP?`<div style="font-size:10px;color:var(--txt3)">${o.date} ${o.period}</div>`:''}
+      </div>
+    </div>
+    ${o.lesson?`<div style="background:var(--pu3);border-radius:var(--r3);padding:10px;margin-bottom:10px">
+      <div style="font-size:9px;color:var(--pu);font-weight:700;margin-bottom:3px">참관 수업</div>
+      <div style="font-size:12px;font-weight:600">${o.lesson.grade||''}${o.lesson.cls||''} ${o.lesson.subject||''} (${o.lesson.teacher||''})</div>
+    </div>`:''}
+    <div style="margin-bottom:10px">${ckh}</div>
+    <div style="margin-top:8px;text-align:right;font-size:11px;color:var(--pu);font-weight:700">평균 평점: ${avg(o.ans)} / 4.0</div>
+    <div style="background:var(--pu3);border-radius:var(--r2);padding:12px;margin-top:8px">
+      <div style="font-size:10px;font-weight:700;color:var(--pu);margin-bottom:5px">참관 소감</div>
+      <div style="font-size:12px;color:var(--txt);line-height:1.7">${o.comment||'미작성'}</div>
+    </div>
+    ${o.strength?`<div style="background:var(--gn3);border-radius:var(--r2);padding:12px;margin-top:8px">
+      <div style="font-size:10px;font-weight:700;color:var(--gn);margin-bottom:5px">수업의 강점</div>
+      <div style="font-size:12px;color:var(--txt);line-height:1.7">${o.strength}</div>
+    </div>`:''}
+    ${o.suggest?`<div style="background:var(--am3);border-radius:var(--r2);padding:12px;margin-top:8px">
+      <div style="font-size:10px;font-weight:700;color:var(--am);margin-bottom:5px">개선 제안</div>
+      <div style="font-size:12px;color:var(--txt);line-height:1.7">${o.suggest}</div>
+    </div>`:''}
+    <div style="margin-top:14px;text-align:right;font-size:10px;color:var(--txt3)">참관자 서명: _________________________ (인)</div>`;
+  openModal('modal-obs');
+}
+function printObs(){const o=APP.observations.find(x=>x.id===APP.currentObsId);if(o)makePDF([o],false);}
+function delObs(id){
+  if(!confirm('삭제하시겠습니까?'))return;
+  APP.observations=APP.observations.filter(o=>o.id!==id);
+  save();closeModal('modal-obs');renderAdminObs();toast('🗑️ 삭제되었습니다');
+}
+function clearAllObs(){
+  if(!confirm('참관록 전체를 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.'))return;
+  APP.observations=[];save();renderAdminObs();toast('🗑️ 전체 삭제 완료');
+}
+
+// ══════════════════════════════════════════════
+//  CSV 내보내기
+// ══════════════════════════════════════════════
+function exportCSV(){
+  if(!APP.observations.length){toast('❗ 참관록이 없습니다');return;}
+  const bom='\uFEFF';
+  const headers=['제출일시','유형','성명','학년','반','소속','참관일','교시','수업(교사)','수업(교과)','평균점수','참관소감','강점','개선제안'];
+  const rows=APP.observations.map(o=>[
+    o.submittedAt||'',o.obsType==='peer'?'동료장학':'학부모',o.name,
+    o.grade||'',o.cls||'',o.belong||'',o.date||'',o.period||'',
+    o.lesson?o.lesson.teacher:'',o.lesson?o.lesson.subject:'',
+    avg(o.ans),
+    (o.comment||'').replace(/,/g,'，'),
+    (o.strength||'').replace(/,/g,'，'),
+    (o.suggest||'').replace(/,/g,'，')
+  ]);
+  const csv=bom+[headers,...rows].map(r=>r.join(',')).join('\n');
+  const a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+  a.download=`참관록_${APP.info.school||'학교'}_${new Date().toLocaleDateString('ko-KR').replace(/\./g,'').replace(/ /g,'')}.csv`;
+  a.click();
+  toast('✅ CSV 다운로드 완료');
+}
+
+// ══════════════════════════════════════════════
+//  QR
+// ══════════════════════════════════════════════
+function switchQR(m){
+  APP.qrMode=m;
+  ['all','parent','peer'].forEach(k=>{
+    const b=document.getElementById('qt-'+k);
+    if(b)b.className='ftab'+(k===m?' on':'');
+  });genQR();
+}
+function genQR(){
+  let url=window.location.href.split('?')[0];
+  if(APP.qrMode!=='all')url+='?type='+APP.qrMode;
+  const box=document.getElementById('qr-box');box.innerHTML='';
+  QRCode.toCanvas(document.createElement('canvas'),url,
+    {width:168,margin:1,color:{dark:'#1E1B4B',light:'#fff'}},
+    (err,canvas)=>{
+      if(err){box.textContent='QR 실패';return;}
+      box.appendChild(canvas);
+      document.getElementById('qr-url').textContent=url.length>50?url.slice(0,50)+'...':url;
+    });
+}
+function shareLink(){
+  let url=window.location.href.split('?')[0];
+  if(APP.qrMode!=='all')url+='?type='+APP.qrMode;
+  if(navigator.share)navigator.share({title:'수업 참관록',text:'참관록 작성하기',url});
+  else navigator.clipboard.writeText(url).then(()=>toast('📋 링크가 복사되었습니다'));
+}
+
+// ══════════════════════════════════════════════
+//  PDF 출력
+// ══════════════════════════════════════════════
+function exportAllPDF(){if(!APP.observations.length){toast('❗ 참관록이 없습니다');return;}makePDF(APP.observations,false);}
+function exportTeacherPDF(){if(!APP.observations.length){toast('❗ 참관록이 없습니다');return;}makePDF([],true);}
+
+function makePDF(obsArr,byTeacher){
+  const{jsPDF}=window.jspdf;
+  const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+  const inf=APP.info,W=210;
+  const rl={4:'④매우그렇다',3:'③보통이다',2:'②그렇지않다',1:'①전혀아니다'};
+
+  if(byTeacher){
+    const teachers=[...new Set(APP.lessons.map(l=>l.teacher))];
+    if(!teachers.length){toast('❗ 지도안을 먼저 등록하세요');return;}
+    teachers.forEach((teacher,ti)=>{
+      if(ti>0)doc.addPage();
+      const tL=APP.lessons.find(l=>l.teacher===teacher);
+      const tO=APP.observations.filter(o=>o.lesson&&o.lesson.teacher===teacher);
+      doc.setFontSize(15);doc.setFont(undefined,'bold');
+      doc.text('교사별 참관록 요약',W/2,18,{align:'center'});
+      doc.setFontSize(9);doc.setFont(undefined,'normal');
+      doc.text(`${inf.school||'학교'} · ${inf.date||''}`,W/2,25,{align:'center'});
+      doc.setFontSize(12);doc.setFont(undefined,'bold');
+      doc.text(`담당 교사: ${teacher}`,15,34);
+      if(tL){doc.setFontSize(9);doc.setFont(undefined,'normal');doc.text(`${tL.grade} ${tL.cls} · ${tL.subject} · ${tL.unit}`,15,41);}
+      doc.setFontSize(10);doc.setFont(undefined,'bold');
+      doc.text(`총 참관록: ${tO.length}건`,15,50);
+      if(!tO.length){doc.setFont(undefined,'normal');doc.text('참관록 없음',15,62);return;}
+      const avgs=tO.map(o=>avg(o.ans)).filter(a=>a!=='-').map(Number);
+      if(avgs.length)doc.text(`평균 만족도: ${(avgs.reduce((a,b)=>a+b,0)/avgs.length).toFixed(1)} / 4.0`,90,50);
+      doc.autoTable({startY:56,
+        head:[['No','참관자','유형','학년반/소속','평균','소감 요약']],
+        body:tO.map((o,i)=>[i+1,o.name,o.obsType==='peer'?'동료장학':'학부모',
+          o.grade?o.grade+' '+o.cls:o.belong||'',avg(o.ans),(o.comment||'').substring(0,35)]),
+        styles:{fontSize:8,cellPadding:3},
+        headStyles:{fillColor:[139,92,246],textColor:255,fontStyle:'bold'},
+        columnStyles:{0:{cellWidth:8},1:{cellWidth:18},2:{cellWidth:16},3:{cellWidth:18},4:{cellWidth:12},5:{cellWidth:106}},
+        margin:{left:15,right:15}});
+    });
+    doc.save(`교사별_참관록_${inf.school||'학교'}.pdf`);
+    toast('✅ 교사별 PDF 저장 완료');
+  }else{
+    obsArr.forEach((o,oi)=>{
+      if(oi>0)doc.addPage();
+      const isP=o.obsType==='parent';
+      const ckList=isP?CK_PARENT:CK_PEER;
+      doc.setFontSize(16);doc.setFont(undefined,'bold');
+      doc.text(isP?'학 부 모  수 업  참 관 록':'동 료 장 학  수 업  참 관 록',W/2,18,{align:'center'});
+      doc.setFontSize(9);doc.setFont(undefined,'normal');
+      doc.text(`${inf.school||''} · ${inf.title||''}`,W/2,26,{align:'center'});
+      const l=o.lesson;
+      doc.autoTable({startY:31,
+        body:isP?
+          [['참관일시',`${o.date||''} ${o.period||''}`,l?`${l.grade||''}${l.cls||''} ${l.subject||''}`:''],
+           ['학부모명',o.name,'자녀학년·반',`${o.grade||''} ${o.cls||''}`]]:
+          [['참관일시',`${o.date||''} ${o.period||''}`,l?`${l.grade||''}${l.cls||''} ${l.subject||''}`:''],
+           ['참관자',o.name,'소속',o.belong||'']],
+        styles:{fontSize:9,cellPadding:4},
+        columnStyles:{0:{fillColor:[237,233,255],fontStyle:'bold',cellWidth:22},2:{fillColor:[237,233,255],fontStyle:'bold',cellWidth:18}},
+        margin:{left:15,right:15}});
+      const rows=[];let n3=1;
+      ckList.forEach(({sec,items})=>{
+        rows.push([{content:sec,colSpan:6,styles:{fillColor:[237,233,255],fontStyle:'bold',fontSize:8}},'','','','','']);
+        items.forEach(item=>{
+          const a=o.ans?Number(o.ans[n3]):0;
+          rows.push([n3,item,a===4?'●':'○',a===3?'●':'○',a===2?'●':'○',a===1?'●':'○']);n3++;
+        });
+      });
+      doc.autoTable({startY:doc.lastAutoTable.finalY+4,
+        head:[['No','평가 항목','④매우그렇다','③보통이다','②그렇지않다','①전혀아니다']],body:rows,
+        styles:{fontSize:8,cellPadding:3,halign:'center'},
+        headStyles:{fillColor:[139,92,246],textColor:255,fontStyle:'bold',fontSize:7},
+        columnStyles:{0:{cellWidth:8},1:{cellWidth:80,halign:'left'},2:{cellWidth:22},3:{cellWidth:18},4:{cellWidth:22},5:{cellWidth:22}},
+        margin:{left:15,right:15}});
+      const body2=[[o.comment||'']];
+      if(o.strength)body2.push(['[수업의 강점] '+o.strength]);
+      if(o.suggest)body2.push(['[개선 제안] '+o.suggest]);
+      doc.autoTable({startY:doc.lastAutoTable.finalY+3,
+        head:[['참  관  소  감']],body:body2,
+        styles:{fontSize:9,cellPadding:5,minCellHeight:24},
+        headStyles:{fillColor:[244,114,182],textColor:255,fontStyle:'bold'},
+        margin:{left:15,right:15}});
+      const fy=doc.lastAutoTable.finalY+9;
+      doc.setFontSize(9);
+      doc.text(`평균 평점: ${avg(o.ans)} / 4.0`,15,fy);
+      doc.text('참관자 서명: _________________________ (인)',W-15,fy,{align:'right'});
+    });
+    doc.save(obsArr.length===1?`참관록_${obsArr[0].name}.pdf`:`전체_참관록_${inf.school||'학교'}.pdf`);
+    toast('✅ PDF 저장 완료');
+  }
+}
+
+// ══════════════════════════════════════════════
+//  유틸
+// ══════════════════════════════════════════════
+function openModal(id){document.getElementById(id).classList.add('open');}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+document.querySelectorAll('.overlay').forEach(el=>{
+  el.addEventListener('click',e=>{if(e.target===el)el.classList.remove('open');});
+});
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2800);
+}
+
+// 시작
+document.getElementById('ob-date').value=new Date().toISOString().split('T')[0];
+init();
+</script>
+</body>
+</html>
