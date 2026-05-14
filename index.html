@@ -601,62 +601,94 @@ async function ghLoad(){
 
 async function ghSave(){
   try{
-    // PDF B64 제외 슬림 저장
     const slim={
-      info:DB.info, adminPw:DB.adminPw,
-      lessons:DB.lessons.map(l=>({id:l.id,teacher:l.teacher,grade:l.grade,cls:l.cls,subject:l.subject,unit:l.unit,goal:l.goal||'',time:l.time||'',room:l.room||''})),
+      info:DB.info,
+      adminPw:DB.adminPw,
+      lessons:DB.lessons.map(l=>({
+        id:l.id,teacher:l.teacher,grade:l.grade,cls:l.cls,
+        subject:l.subject,unit:l.unit,goal:l.goal||'',
+        time:l.time||'',room:l.room||''
+      })),
       observations:DB.observations
     };
-    const content=btoa(unescape(encodeURIComponent(JSON.stringify(slim,null,2))));
-    // SHA 가져오기
+    const content=btoa(unescape(encodeURIComponent(JSON.stringify(slim))));
+
+    // 1단계: 현재 SHA 가져오기
     let sha='';
-    try{
-      const r=await fetch(GH.api,{headers:{'Authorization':'token '+GH.token,'Accept':'application/vnd.github+json'}});
-      if(r.ok){const j=await r.json();sha=j.sha||'';}
-    }catch(e){}
-    const body={message:'참관록 업데이트',content,branch:GH.branch};
+    const rGet=await fetch(GH.api,{
+      headers:{
+        'Authorization':'token '+GH.token,
+        'Accept':'application/vnd.github+json'
+      }
+    });
+    if(rGet.ok){
+      const j=await rGet.json();
+      sha=j.sha||'';
+    }
+
+    // 2단계: 파일 저장
+    const body={message:'update',content:content,branch:GH.branch};
     if(sha) body.sha=sha;
-    const res=await fetch(GH.api,{
+
+    const rPut=await fetch(GH.api,{
       method:'PUT',
-      headers:{'Authorization':'token '+GH.token,'Accept':'application/vnd.github+json','Content-Type':'application/json'},
+      headers:{
+        'Authorization':'token '+GH.token,
+        'Accept':'application/vnd.github+json',
+        'Content-Type':'application/json'
+      },
       body:JSON.stringify(body)
     });
-    setSyncBadge(res.ok);
-    return res.ok;
-  }catch(e){ setSyncBadge(false); return false; }
+
+    setSyncBadge(rPut.ok);
+    return rPut.ok;
+  }catch(e){
+    setSyncBadge(false);
+    return false;
+  }
 }
 
 function lsSave(){ try{localStorage.setItem('obs_db',JSON.stringify(DB));}catch(e){} }
 function lsLoad(){
-  // 여러 버전의 키 모두 체크해서 데이터 복원
-  const keys=['obs_db','obs6','classroom_obs_v1','obs_observations','obs_lessons'];
-  let found=false;
+  // 1. localStorage 로드
+  const keys=['obs_db','obs6','classroom_obs_v1'];
   for(const k of keys){
     try{
       const r=localStorage.getItem(k);
-      if(r){
-        const d=JSON.parse(r);
-        if(d && (d.lessons||d.observations||d.info)){
-          Object.assign(DB,d);
-          // 통합된 데이터를 obs_db에 저장
-          localStorage.setItem('obs_db',JSON.stringify(DB));
-          found=true;
-          break;
-        }
+      if(r){const d=JSON.parse(r);if(d&&(d.lessons||d.observations||d.info)){Object.assign(DB,d);break;}}
+    }catch(e){}
+  }
+
+  // 2. URL 파라미터에서 지도안+학교정보 읽기 (QR로 공유된 데이터)
+  try{
+    const params=new URLSearchParams(location.search);
+    const d=params.get('d');
+    if(d){
+      const slim=JSON.parse(decodeURIComponent(unescape(atob(d))));
+      // 학교 정보 적용
+      if(slim.i){
+        DB.info={
+          title:slim.i.t||DB.info.title,
+          school:slim.i.s||DB.info.school,
+          date:slim.i.d||DB.info.date,
+          place:slim.i.p||DB.info.place,
+          msg:slim.i.m||DB.info.msg
+        };
       }
-    }catch(e){}
-  }
-  // 개별 키로 저장된 데이터도 체크
-  if(!found){
-    try{
-      const l=localStorage.getItem('obs_lessons');
-      const o=localStorage.getItem('obs_observations');
-      const i=localStorage.getItem('obs_info');
-      if(l) DB.lessons=JSON.parse(l);
-      if(o) DB.observations=JSON.parse(o);
-      if(i) DB.info=JSON.parse(i);
-    }catch(e){}
-  }
+      // 지도안 적용 (URL 데이터 우선)
+      if(slim.l&&slim.l.length>0){
+        const urlLessons=slim.l.map(l=>({
+          id:l.id,teacher:l.t,grade:l.g,cls:l.c,
+          subject:l.s,unit:l.u,goal:l.gl||'',
+          time:l.tm||'',room:l.r||''
+        }));
+        // 기존 지도안과 병합 (URL 것 우선)
+        const urlIds=new Set(urlLessons.map(l=>l.id));
+        const localOnly=DB.lessons.filter(l=>!urlIds.has(l.id));
+        DB.lessons=[...urlLessons,...localOnly];
+      }
+    }
+  }catch(e){}
 }
 
 function setSyncBadge(ok){
@@ -1027,13 +1059,32 @@ function switchQR(m){
   makeQR();
 }
 function makeQR(){
-  let url=window.location.href.split('?')[0];
-  if(S.qrMode!=='all') url+='?type='+S.qrMode;
+  const base=window.location.href.split('?')[0];
+  const params=new URLSearchParams();
+  if(S.qrMode!=='all') params.set('type',S.qrMode);
+
+  // 지도안+학교정보를 URL에 압축 (PDF 제외, 텍스트만)
+  if(DB.lessons.length>0){
+    try{
+      const slim={
+        i:{t:DB.info.title||'',s:DB.info.school||'',d:DB.info.date||'',p:DB.info.place||'',m:DB.info.msg||''},
+        l:DB.lessons.map(l=>({id:l.id,t:l.teacher,g:l.grade,c:l.cls,s:l.subject,u:l.unit,gl:l.goal||'',tm:l.time||'',r:l.room||''}))
+      };
+      const compressed=btoa(unescape(encodeURIComponent(JSON.stringify(slim))));
+      params.set('d',compressed);
+    }catch(e){}
+  }
+
+  const url=base+(params.toString()?'?'+params.toString():'');
   const box=document.getElementById('qr-box');box.innerHTML='';
-  QRCode.toCanvas(document.createElement('canvas'),url,{width:166,margin:1,color:{dark:'#28203C',light:'#fff'}},(err,canvas)=>{
+
+  // URL이 너무 길면 지도안 없이 기본 QR
+  const finalUrl=url.length>2000?base+(S.qrMode!=='all'?'?type='+S.qrMode:''):url;
+
+  QRCode.toCanvas(document.createElement('canvas'),finalUrl,{width:166,margin:1,errorCorrectionLevel:'L',color:{dark:'#28203C',light:'#fff'}},(err,canvas)=>{
     if(err){box.textContent='QR 실패';return;}
     box.appendChild(canvas);
-    document.getElementById('qr-url').textContent=url.length>55?url.slice(0,55)+'...':url;
+    document.getElementById('qr-url').textContent=finalUrl.length>55?finalUrl.slice(0,55)+'...':finalUrl;
   });
 }
 function shareURL(){
