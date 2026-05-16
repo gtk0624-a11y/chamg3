@@ -6,8 +6,6 @@
 <title>수업 참관록</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -79,9 +77,39 @@ html,body{height:100%;font-family:'Noto Sans KR',sans-serif;background:var(--bg)
 .sync-bar{display:flex;align-items:center;gap:6px;background:var(--vt);border-radius:9px;padding:8px 12px;margin-bottom:11px;font-size:11px;color:var(--vt3)}
 .sync-bar .sp2{width:14px;height:14px;border:2px solid rgba(88,48,168,0.3);border-top-color:var(--vt3);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
 </style>
+
+<style id="print-style">
+@media print {
+  .wrap, .ldg, .ov, .toast { display: none !important; }
+  #print-area { display: block !important; }
+  body { background: white; margin: 0; padding: 0; }
+  @page { size: A4; margin: 15mm; }
+}
+#print-area {
+  display: none;
+  font-family: 'Noto Sans KR', sans-serif;
+  font-size: 11px;
+  color: #000;
+  line-height: 1.6;
+}
+.prt-page { page-break-after: always; padding: 0; }
+.prt-page:last-child { page-break-after: avoid; }
+.prt-title { font-size: 16px; font-weight: 800; text-align: center; padding: 10px 0 6px; border-bottom: 2px solid #5830A8; margin-bottom: 12px; }
+.prt-sub { font-size: 10px; text-align: center; color: #604880; margin-bottom: 14px; }
+.prt-table { width: 100%; border-collapse: collapse; margin-bottom: 10px; font-size: 11px; }
+.prt-table td, .prt-table th { border: 1px solid #888; padding: 5px 7px; vertical-align: top; }
+.prt-table .lbl { background: #EDE0FF; font-weight: 700; white-space: nowrap; width: 22%; }
+.prt-table .hlbl { background: #5830A8; color: white; font-weight: 700; text-align: center; font-size: 12px; }
+.prt-ck th { background: #EDE0FF; font-weight: 700; text-align: center; font-size: 10px; }
+.prt-ck td { font-size: 10px; }
+.prt-sign { text-align: right; margin-top: 10px; font-size: 11px; }
+.prt-footer { margin-top: 8px; font-size: 10px; color: #604880; }
+</style>
+
 </head>
 <body>
 
+<div id="print-area"></div>
 <div class="ldg" id="ldg">
   <div style="font-size:21px;font-weight:800;color:#fff">🌸 수업 참관록</div>
   <div style="font-size:11px;color:rgba(255,255,255,0.8);margin-top:4px">불러오는 중...</div>
@@ -508,7 +536,279 @@ function pdfByTeacher(){
   if(!DB.obs.length){toast('먼저 불러오기를 눌러주세요');return;}
   const teachers=[...new Set(DB.lessons.map(l=>l.teacher))];
   if(!teachers.length){toast('지도안을 먼저 등록하세요');return;}
-  const{jsPDF}=window.jspdf;const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});registerKoreanFont(doc);const W=210;const inf=DB.info;
+  const{jsPDF}=window.jspdf;const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});const W=210;const inf=DB.info;
+  teachers.forEach((t,ti)=>{
+    if(ti>0)doc.addPage();
+    const tO=DB.obs.filter(o=>o.obsType==='peer'?o.teacher===t:o.lesson&&o.lesson.includes(t));
+    doc.setFontSize(14);doc.setFont(undefined,'bold');doc.text('교사별 참관록 요약',W/2,18,{align:'center'});
+    doc.setFontSize(9);doc.setFont(undefined,'normal');doc.text(`${inf.school||'학교'} | ${inf.date||''}`,W/2,25,{align:'center'});
+    doc.setFontSize(12);doc.setFont(undefined,'bold');doc.text(`담당 교사: ${t}`,15,34);
+    doc.setFontSize(10);doc.text(`참관록: ${tO.length}건`,15,43);
+    if(!tO.length){doc.setFont(undefined,'normal');doc.text('참관록 없음',15,55);return;}
+    doc.autoTable({startY:50,head:[['No','참관자','유형','내용 요약']],body:tO.map((o,i)=>[i+1,o.name,o.obsType==='peer'?'동료장학':'학부모',(o.obsType==='peer'?(o.good||''):(o.comment||'')).substring(0,50)]),styles:{fontSize:8,cellPadding:3,font:'Korean'},headStyles:{fillColor:[168,124,236],textColor:[32,12,60],fontStyle:'bold'},columnStyles:{0:{cellWidth:8},1:{cellWidth:20},2:{cellWidth:18},3:{cellWidth:132}},margin:{left:15,right:15}});
+  });
+  doc.save(`교사별_참관록_${inf.school||'학교'}.pdf`);toast('✅ PDF 완료');
+}
+
+
+// ── 인쇄 기반 PDF 출력 (한글 완벽 지원) ──────────────
+function pdfAll(){
+  if(!DB.obs.length){toast('먼저 불러오기를 눌러주세요');return;}
+  const list = S.filt==='all' ? DB.obs : DB.obs.filter(o=>o.obsType===S.filt);
+  if(!list.length){toast('없음');return;}
+  printObs(list);
+}
+function pdfByTeacher(){
+  if(!DB.obs.length){toast('먼저 불러오기를 눌러주세요');return;}
+  const teachers=[...new Set(DB.lessons.map(l=>l.teacher))];
+  if(!teachers.length){toast('지도안을 먼저 등록하세요');return;}
+  // 교사별로 묶어서 출력
+  const byT = {};
+  DB.obs.forEach(o=>{
+    const t = o.obsType==='peer' ? o.teacher : (o.lesson||'').match(/\(([^)]+)\)/)?.[1]||'기타';
+    if(!byT[t]) byT[t]=[];
+    byT[t].push(o);
+  });
+  printObs(DB.obs, byT);
+}
+function pdfOne(){const o=DB.obs.find(x=>x.id===S.curObs);if(o)printObs([o]);}
+function pdfSingle(id){const o=DB.obs.find(x=>x.id===id);if(o)printObs([o]);}
+
+function printObs(list, byTeacher){
+  const inf = DB.info;
+  const area = document.getElementById('print-area');
+  
+  let html = '';
+  
+  if(byTeacher){
+    // 교사별 요약
+    Object.entries(byTeacher).forEach(([teacher, obs])=>{
+      html += `<div class="prt-page">
+        <div class="prt-title">교사별 참관록 요약</div>
+        <div class="prt-sub">${inf.school||''} | ${inf.date||''}</div>
+        <table class="prt-table">
+          <tr><td class="lbl">담당 교사</td><td colspan="3"><b>${teacher}</b></td></tr>
+          <tr><td class="lbl">참관록 수</td><td colspan="3">${obs.length}건</td></tr>
+        </table>
+        <table class="prt-table">
+          <tr><th style="width:8%;background:#EDE0FF">No</th><th style="background:#EDE0FF">참관자</th><th style="width:18%;background:#EDE0FF">유형</th><th style="background:#EDE0FF">내용 요약</th></tr>
+          ${obs.map((o,i)=>`<tr><td style="text-align:center">${i+1}</td><td>${o.name}</td><td>${o.obsType==='peer'?'동료장학':'학부모'}</td><td>${(o.obsType==='peer'?(o.good||''):(o.comment||'')).substring(0,60)}</td></tr>`).join('')}
+        </table>
+      </div>`;
+    });
+  } else {
+    list.forEach(o=>{
+      if(o.obsType==='peer'){
+        html += `<div class="prt-page">
+          <div class="prt-title">수 업 참 관 록</div>
+          <div class="prt-sub">${inf.school||''} | ${inf.title||''}</div>
+          <table class="prt-table">
+            <tr><td class="lbl">과 목 명</td><td>${o.subject||''}</td><td class="lbl">단 원 명</td><td>${o.unit||''}</td></tr>
+            <tr><td class="lbl">수업 교사</td><td>${o.teacher||''}</td><td class="lbl">대상(반)</td><td>${o.class_||''}</td></tr>
+            <tr><td class="lbl">일 시</td><td colspan="3">${o.date||''} ${o.period||''}</td></tr>
+          </table>
+          <table class="prt-table">
+            <tr><td class="lbl" style="vertical-align:top;padding-top:8px">좋았던 점</td><td colspan="3" style="min-height:60px;line-height:1.9">${(o.good||'').replace(/\n/g,'<br>')}</td></tr>
+            <tr><td class="lbl" style="vertical-align:top;padding-top:8px">내 수업에<br>활용하고<br>싶은 점</td><td colspan="3" style="min-height:60px;line-height:1.9">${(o.apply||'').replace(/\n/g,'<br>')}</td></tr>
+            <tr><td class="lbl" style="vertical-align:top;padding-top:8px">종합 의견</td><td colspan="3" style="min-height:60px;line-height:1.9">${(o.opinion||'').replace(/\n/g,'<br>')}</td></tr>
+          </table>
+          <div style="margin-top:12px;font-size:11px">
+            참관자: 소속 ( ${o.org||'                '} ) &nbsp; 직위 ( ${o.pos||'          '} ) &nbsp; 성명 ( ${o.name} )
+          </div>
+          <div class="prt-sign">서명: ______________________ (인)</div>
+        </div>`;
+      } else {
+        // 학부모
+        const ckLabels = ['④ 매우 그렇다','③ 보통이다','② 그렇지 않다','① 전혀 그렇지 않다'];
+        const ckRows1 = CKP_ROWS.slice(0,7).map((q,i)=>`<tr><td style="text-align:center;width:6%">${i+1}</td><td style="width:60%">${q}</td><td style="text-align:center;width:34%">${o.ck?o.ck[i]||'':''}</td></tr>`).join('');
+        const ckRows2 = CKP_ROWS.slice(7).map((q,i)=>`<tr><td style="text-align:center">${i+8}</td><td>${q}</td><td style="text-align:center">${o.ck?o.ck[i+7]||'':''}</td></tr>`).join('');
+        html += `<div class="prt-page">
+          <div class="prt-title">학 부 모 수 업 참 관 록</div>
+          <div class="prt-sub">${inf.school||''} | ${inf.title||''}</div>
+          <table class="prt-table">
+            <tr><td class="lbl">학부모 성명</td><td>${o.name}</td><td class="lbl">자녀 학년·반</td><td>${o.grade||''} ${o.cls||''}</td></tr>
+            <tr><td class="lbl">참관 수업</td><td>${o.lesson||''}</td><td class="lbl">참관 일시</td><td>${o.date||''} ${o.period||''}</td></tr>
+          </table>
+          <div style="font-size:10px;background:#FFF0C0;padding:6px 9px;border-radius:6px;margin-bottom:6px;line-height:1.8">
+            📋 해당되는 번호에 표시해 주십시오 &nbsp; ④ 매우 그렇다 · ③ 보통이다 · ② 그렇지 않다 · ① 전혀 그렇지 않다
+          </div>
+          <table class="prt-table prt-ck">
+            <tr><th style="width:6%">No</th><th style="text-align:left">평 가 항 목 (자녀의 학습 준비도 및 학습 활동)</th><th style="width:28%">응 답</th></tr>
+            ${ckRows1}
+            <tr><th colspan="3" style="text-align:left;background:#EDE0FF">자녀의 사회 적응도</th></tr>
+            ${ckRows2}
+          </table>
+          <table class="prt-table">
+            <tr><td class="lbl" style="vertical-align:top;padding-top:8px">참 관 소 감</td><td style="min-height:70px;line-height:1.9">${(o.comment||'').replace(/\n/g,'<br>')}</td></tr>
+          </table>
+          <div class="prt-sign">참관자 서명: ______________________ (인)</div>
+        </div>`;
+      }
+    });
+  }
+  
+  area.innerHTML = html;
+  
+  setTimeout(()=>{
+    window.print();
+    setTimeout(()=>{ area.innerHTML=''; }, 1000);
+  }, 300);
+  
+  toast('🖨️ 인쇄 창이 열립니다 — PDF로 저장 선택');
+}
+
+
+function lsSave(){try{localStorage.setItem('chamg_v3',JSON.stringify({info:DB.info,adminPw:DB.adminPw,lessons:DB.lessons})  );}catch(e){}}
+function lsLoad(){try{const r=localStorage.getItem('chamg_v3');if(r){const d=JSON.parse(r);if(d.info)DB.info=d.info;if(d.adminPw)DB.adminPw=d.adminPw;if(d.lessons)DB.lessons=d.lessons;}}catch(e){}}
+
+// ── CSV 파싱 ──────────────────────────────────────────
+function parseCSV(text){
+  const lines=text.trim().split('\n');
+  if(lines.length<2)return[];
+  const headers=parseLine(lines[0]);
+  return lines.slice(1).map(line=>{
+    const vals=parseLine(line);
+    const obj={};
+    headers.forEach((h,i)=>{obj[h.trim()]=vals[i]?vals[i].trim():'';}  );
+    return obj;
+  }).filter(r=>Object.values(r).some(v=>v));
+}
+function parseLine(line){
+  const result=[];let cur='';let inQ=false;
+  for(let i=0;i<line.length;i++){
+    const c=line[i];
+    if(c==='"'){inQ=!inQ;}
+    else if(c===','&&!inQ){result.push(cur);cur='';}
+    else{cur+=c;}
+  }
+  result.push(cur);
+  return result;
+}
+
+// ── Sheets에서 불러오기 ───────────────────────────────
+async function loadFromSheets(){
+  const bar=document.getElementById('sync-status');
+  bar.style.display='flex';
+  toast('🔄 불러오는 중...');
+  try{
+    const [pr,pe]=await Promise.all([
+      fetch(`https://docs.google.com/spreadsheets/d/${SHEETS_ID}/export?format=csv&gid=${PARENT_GID}&t=${Date.now()}`).then(r=>r.ok?r.text():Promise.reject('학부모 로드 실패')),
+      fetch(`https://docs.google.com/spreadsheets/d/${SHEETS_ID}/export?format=csv&gid=${PEER_GID}&t=${Date.now()}`).then(r=>r.ok?r.text():Promise.reject('동료장학 로드 실패'))
+    ]);
+    const parentRows=parseCSV(pr).map(r=>mapParent(r));
+    const peerRows=parseCSV(pe).map(r=>mapPeer(r));
+    DB.obs=[...parentRows,...peerRows].sort((a,b)=>new Date(b.at)-new Date(a.at));
+    bar.style.display='none';
+    document.getElementById('obs-cnt-bar').textContent=`총 ${DB.obs.length}건 (학부모 ${parentRows.length}건 · 동료장학 ${peerRows.length}건)`;
+    renderObs();
+    toast(`✅ ${DB.obs.length}건 불러옴`);
+  }catch(e){
+    bar.style.display='none';
+    toast('❌ 불러오기 실패 — Sheets 공유 설정을 확인하세요');
+    console.error(e);
+  }
+}
+
+// 학부모 행 매핑 (Forms 제출 컬럼 순서대로)
+function mapParent(r){
+  const keys=Object.keys(r);
+  return{
+    id:'p_'+Math.random().toString(36).slice(2),
+    obsType:'parent',
+    at:r[keys[0]]||'',       // 타임스탬프
+    lesson:r[keys[1]]||'',   // 참관 수업 선택
+    date:r[keys[2]]||'',     // 참관 일시
+    period:r[keys[3]]||'',   // 교시
+    name:r[keys[4]]||'',     // 학부모 성명
+    grade:r[keys[5]]||'',    // 자녀 학년
+    cls:r[keys[6]]||'',      // 자녀 반
+    // 체크리스트 그리드 (keys[7]부터 10개)
+    ck:keys.slice(7,17).map(k=>r[k]||''),
+    comment:r[keys[17]]||''  // 참관 소감
+  };
+}
+
+// 동료장학 행 매핑
+function mapPeer(r){
+  const keys=Object.keys(r);
+  return{
+    id:'t_'+Math.random().toString(36).slice(2),
+    obsType:'peer',
+    at:r[keys[0]]||'',
+    subject:r[keys[1]]||'',
+    unit:r[keys[2]]||'',
+    teacher:r[keys[3]]||'',
+    class_:r[keys[4]]||'',
+    date:r[keys[5]]||'',
+    period:r[keys[6]]||'',
+    good:r[keys[7]]||'',
+    apply:r[keys[8]]||'',
+    opinion:r[keys[9]]||'',
+    org:r[keys[10]]||'',
+    pos:r[keys[11]]||'',
+    name:r[keys[12]]||''
+  };
+}
+
+// ── 렌더링 ───────────────────────────────────────────
+
+
+function renderAll(){rHdr();rHome();rLessons();rAdminLes();rQR();fillAdmin();}
+function rHdr(){const i=DB.info;document.getElementById('hdr-title').textContent='🌸 '+(i.title||'수업 참관록');document.getElementById('hdr-school').textContent=i.school||'학교명 미설정';document.getElementById('hdr-date').textContent=i.date||'';document.getElementById('hdr-place').textContent='📍 '+(i.place||'장소 미설정');}
+function rHome(){
+  const i=DB.info;
+  document.getElementById('home-txt').innerHTML=`📌 행사명: ${i.title||'미설정'}<br>📌 학교명: ${i.school||'미설정'}<br>📌 일 시: ${i.date||'미설정'}<br>📌 장 소: ${i.place||'미설정'}${i.msg?'<br>📌 안내: '+i.msg:''}`;
+  document.getElementById('st-l').textContent=DB.lessons.length;
+  document.getElementById('st-o').textContent=DB.obs.length;
+  document.getElementById('st-t').textContent=[...new Set(DB.lessons.map(l=>l.teacher))].length;
+  const el=document.getElementById('home-sched');
+  if(!DB.lessons.length){el.innerHTML='<div style="text-align:center;padding:16px;color:var(--tx3);font-size:11px">등록된 수업 없음</div>';return;}
+  el.innerHTML=[...DB.lessons].sort((a,b)=>(a.time||'').localeCompare(b.time||'')).map(l=>`<div style="display:flex;align-items:center;gap:9px;padding:9px;background:var(--vt);border-radius:9px;margin-bottom:6px"><div style="font-size:11px;font-weight:700;color:var(--vt3);min-width:37px">${l.time||''}</div><div style="flex:1"><div style="font-size:11px;font-weight:700">${l.grade} ${l.cls} <span class="bdg ${SC[l.subject]||'blav'}">${l.subject}</span></div><div style="font-size:10px;color:var(--tx2)">${l.teacher} · ${l.room||'교실'}</div></div>${l.driveUrl?`<a href="${l.driveUrl}" target="_blank" style="font-size:10px;color:var(--vt3);text-decoration:none;background:var(--wh);padding:3px 7px;border-radius:5px;border:1px solid var(--bd)">📄</a>`:''}</div>`).join('');
+}
+function rLessons(){
+  const el=document.getElementById('lesson-list');
+  document.getElementById('btn-add').style.display=S.mode==='admin'?'block':'none';
+  if(!DB.lessons.length){el.innerHTML='<div style="text-align:center;padding:26px;color:var(--tx3);font-size:12px">등록된 지도안 없음</div>';return;}
+  el.innerHTML=DB.lessons.map(l=>`<div class="card" style="margin-bottom:9px"><div style="font-size:12px;font-weight:700">${l.teacher} — ${l.grade} ${l.cls}</div><div style="font-size:10px;color:var(--tx2);margin-top:3px"><span class="bdg ${SC[l.subject]||'blav'}">${l.subject}</span> ⏰${l.time} 🏫${l.room||'교실'}</div><div style="font-size:11px;color:var(--tx2);margin-top:4px"><b>단원:</b> ${l.unit}</div><div style="display:flex;gap:7px;margin-top:9px">${l.driveUrl?`<a href="${l.driveUrl}" target="_blank" class="btn bs bsm" style="text-decoration:none"><i class="ti ti-file-type-pdf"></i> 지도안 보기</a>`:''}</div></div>`).join('');
+}
+function rAdminLes(){
+  const el=document.getElementById('admin-les');
+  if(!DB.lessons.length){el.innerHTML='<p style="font-size:11px;color:var(--tx3);padding:5px">없음</p>';return;}
+  el.innerHTML=DB.lessons.map(l=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:8px;background:var(--vt);border-radius:9px;margin-bottom:5px"><div style="font-size:11px;font-weight:600"><b>${l.teacher}</b> ${l.grade}${l.cls} ${l.subject} ${l.time}</div><button class="btn bsm br_" onclick="rmLesson('${l.id}')"><i class="ti ti-trash"></i></button></div>`).join('');
+}
+function renderObs(){
+  const el=document.getElementById('obs-list');
+  const list=S.filt==='all'?DB.obs:DB.obs.filter(o=>o.obsType===S.filt);
+  if(!list.length){el.innerHTML='<div style="text-align:center;padding:16px;color:var(--tx3);font-size:11px">없음</div>';return;}
+  el.innerHTML=list.map(o=>`<div class="oc"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div><div style="font-size:12px;font-weight:700">${o.name||'-'}</div><div style="font-size:10px;color:var(--tx2);margin-top:2px">${o.obsType==='parent'?(o.grade+' '+o.cls):(o.org||'')} · ${o.date||'-'}</div><div style="font-size:10px;color:var(--vt3)">${o.obsType==='peer'?o.subject+' ('+o.teacher+')':o.lesson||''}</div><span style="display:inline-flex;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;margin-top:3px;background:${o.obsType==='peer'?'var(--yw)':'var(--pk)'};color:${o.obsType==='peer'?'var(--yw3)':'var(--pk3)'}">${o.obsType==='peer'?'👩‍🏫 동료장학':'👨‍👩‍👧 학부모'}</span></div><div style="display:flex;gap:4px;flex-direction:column"><button class="btn bs bsm" onclick="viewObs('${o.id}')"><i class="ti ti-eye"></i></button><button class="btn bp bsm" onclick="pdfSingle('${o.id}')"><i class="ti ti-file-type-pdf"></i></button></div></div></div>`).join('');
+}
+function rQR(){const i=DB.info;document.getElementById('qr-ttl').textContent=i.title||'공개수업 안내';document.getElementById('qr-body').innerHTML=`<b>${i.school||''}</b><br>📅 ${i.date||'일시 미정'}<br>📍 ${i.place||'장소 미정'}<br><br>${i.msg||'아래 QR코드를 스캔하시면<br>참관록을 작성하실 수 있습니다.'}`;}
+function fillAdmin(){const i=DB.info;['title','school','date','place','msg'].forEach(k=>{const e=document.getElementById('ed-'+k);if(e)e.value=i[k]||'';}  );}
+function filtObs(f){S.filt=f;['all','parent','peer'].forEach(k=>{const b=document.getElementById('f'+k[0]);if(!b)return;b.style.fontWeight=k===f?'700':'500';b.style.borderColor=k===f?'var(--vt3)':'var(--bd)';});renderObs();}
+
+// ── 참관록 상세 보기 ─────────────────────────────────
+function viewObs(id){
+  const o=DB.obs.find(x=>x.id===id);if(!o)return;S.curObs=id;
+  let html='';
+  if(o.obsType==='parent'){
+    let ckHtml='';
+    CKP_ROWS.forEach((q,i)=>{ckHtml+=`<tr><td style="border:1px solid var(--bd);padding:4px;font-size:10px;text-align:center;color:var(--vt3)">${i+1}</td><td style="border:1px solid var(--bd);padding:4px;font-size:10px">${q}</td><td style="border:1px solid var(--bd);padding:4px;font-size:10px;font-weight:700;color:var(--vt3)">${o.ck?o.ck[i]||'미선택':'미선택'}</td></tr>`;});
+    html=`<table style="width:100%;border-collapse:collapse;font-size:10px;margin-bottom:8px"><tr style="background:var(--vt)"><th colspan="4" style="padding:6px;text-align:center;font-size:12px;font-weight:700;color:var(--vt3)">학부모 수업 참관록</th></tr><tr><td style="border:1px solid var(--bd);padding:4px 6px;font-weight:700;background:var(--vt);width:25%">학부모명</td><td style="border:1px solid var(--bd);padding:4px 6px" colspan="3">${o.name}</td></tr><tr><td style="border:1px solid var(--bd);padding:4px 6px;font-weight:700;background:var(--vt)">자녀학년·반</td><td style="border:1px solid var(--bd);padding:4px 6px" colspan="3">${o.grade} ${o.cls}</td></tr><tr><td style="border:1px solid var(--bd);padding:4px 6px;font-weight:700;background:var(--vt)">참관수업</td><td style="border:1px solid var(--bd);padding:4px 6px" colspan="3">${o.lesson}</td></tr><tr><td style="border:1px solid var(--bd);padding:4px 6px;font-weight:700;background:var(--vt)">참관일시</td><td style="border:1px solid var(--bd);padding:4px 6px" colspan="3">${o.date} ${o.period}</td></tr></table><table style="width:100%;border-collapse:collapse;font-size:10px;margin-bottom:8px"><tr><th style="background:var(--vt);border:1px solid var(--bd);padding:5px;width:18px">No</th><th style="background:var(--vt);border:1px solid var(--bd);padding:5px;text-align:left">평가항목</th><th style="background:var(--vt);border:1px solid var(--bd);padding:5px">응답</th></tr>${ckHtml}</table>${o.comment?`<div style="background:var(--vt);border-radius:9px;padding:10px;font-size:11px;line-height:1.8"><div style="font-size:10px;font-weight:700;color:var(--vt3);margin-bottom:4px">참관 소감</div>${o.comment}</div>`:''}`;
+  }else{
+    html=`<table style="width:100%;border-collapse:collapse;font-size:11px;margin-bottom:8px"><tr style="background:var(--vt)"><th colspan="4" style="padding:7px;text-align:center;font-size:13px;font-weight:700;color:var(--vt3)">수 업 참 관 록</th></tr><tr><td style="border:1px solid var(--bd);padding:5px 7px;font-weight:700;background:var(--vt);width:22%">과목명</td><td style="border:1px solid var(--bd);padding:5px 7px">${o.subject}</td><td style="border:1px solid var(--bd);padding:5px 7px;font-weight:700;background:var(--vt);width:22%">단원명</td><td style="border:1px solid var(--bd);padding:5px 7px">${o.unit}</td></tr><tr><td style="border:1px solid var(--bd);padding:5px 7px;font-weight:700;background:var(--vt)">수업교사</td><td style="border:1px solid var(--bd);padding:5px 7px">${o.teacher}</td><td style="border:1px solid var(--bd);padding:5px 7px;font-weight:700;background:var(--vt)">대상(반)</td><td style="border:1px solid var(--bd);padding:5px 7px">${o.class_}</td></tr><tr><td style="border:1px solid var(--bd);padding:5px 7px;font-weight:700;background:var(--vt)">일시</td><td style="border:1px solid var(--bd);padding:5px 7px" colspan="3">${o.date} ${o.period}</td></tr><tr><td style="border:1px solid var(--bd);padding:5px 7px;font-weight:700;background:var(--vt);vertical-align:top">좋았던 점</td><td style="border:1px solid var(--bd);padding:5px 7px;line-height:1.7" colspan="3">${o.good||'-'}</td></tr><tr><td style="border:1px solid var(--bd);padding:5px 7px;font-weight:700;background:var(--vt);vertical-align:top">활용하고<br>싶은 점</td><td style="border:1px solid var(--bd);padding:5px 7px;line-height:1.7" colspan="3">${o.apply||'-'}</td></tr><tr><td style="border:1px solid var(--bd);padding:5px 7px;font-weight:700;background:var(--vt);vertical-align:top">종합의견</td><td style="border:1px solid var(--bd);padding:5px 7px;line-height:1.7" colspan="3">${o.opinion||'-'}</td></tr></table><div style="font-size:11px;padding:5px 0">참관자: 소속(${o.org||' '}) 직위(${o.pos||' '}) 성명(${o.name})</div>`;
+  }
+  document.getElementById('obs-det').innerHTML=html;om('ov-obs');
+}
+
+// ── PDF 출력 ─────────────────────────────────────────
+function pdfOne(){const o=DB.obs.find(x=>x.id===S.curObs);if(o)mkPDF([o]);}
+function pdfSingle(id){const o=DB.obs.find(x=>x.id===id);if(o)mkPDF([o]);}
+function pdfAll(){if(!DB.obs.length){toast('먼저 불러오기를 눌러주세요');return;}mkPDF(S.filt==='all'?DB.obs:DB.obs.filter(o=>o.obsType===S.filt));}
+function pdfByTeacher(){
+  if(!DB.obs.length){toast('먼저 불러오기를 눌러주세요');return;}
+  const teachers=[...new Set(DB.lessons.map(l=>l.teacher))];
+  if(!teachers.length){toast('지도안을 먼저 등록하세요');return;}
+  const{jsPDF}=window.jspdf;const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});const W=210;const inf=DB.info;
   teachers.forEach((t,ti)=>{
     if(ti>0)doc.addPage();
     const tO=DB.obs.filter(o=>o.obsType==='peer'?o.teacher===t:o.lesson&&o.lesson.includes(t));
@@ -530,7 +830,7 @@ function registerKoreanFont(doc){
   }catch(e){}
 }
 function mkPDF(obsArr){
-  const{jsPDF}=window.jspdf;const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});registerKoreanFont(doc);const W=210;const inf=DB.info;
+  const{jsPDF}=window.jspdf;const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});const W=210;const inf=DB.info;
   obsArr.forEach((o,oi)=>{
     if(oi>0)doc.addPage();
     if(o.obsType==='peer'){
