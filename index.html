@@ -391,6 +391,8 @@ function lsLoad(){try{const r=localStorage.getItem('chamg_v3');if(r){const d=JSO
 
 // ── CSV 파싱 ──────────────────────────────────────────
 function parseCSV(text){
+  // UTF-8 BOM 제거
+  text = text.replace(/^\uFEFF/, '');
   const lines=text.trim().split('\n');
   if(lines.length<2)return[];
   const headers=parseLine(lines[0]);
@@ -420,8 +422,12 @@ async function loadFromSheets(){
   toast('🔄 불러오는 중...');
   try{
     const [pr,pe]=await Promise.all([
-      fetch(`https://docs.google.com/spreadsheets/d/${SHEETS_ID}/export?format=csv&gid=${PARENT_GID}&t=${Date.now()}`).then(r=>r.ok?r.text():Promise.reject('학부모 로드 실패')),
-      fetch(`https://docs.google.com/spreadsheets/d/${SHEETS_ID}/export?format=csv&gid=${PEER_GID}&t=${Date.now()}`).then(r=>r.ok?r.text():Promise.reject('동료장학 로드 실패'))
+      fetch(`https://docs.google.com/spreadsheets/d/${SHEETS_ID}/export?format=csv&gid=${PARENT_GID}&t=${Date.now()}`)
+        .then(r=>r.ok?r.arrayBuffer():Promise.reject('학부모 로드 실패'))
+        .then(buf=>new TextDecoder('utf-8').decode(buf)),
+      fetch(`https://docs.google.com/spreadsheets/d/${SHEETS_ID}/export?format=csv&gid=${PEER_GID}&t=${Date.now()}`)
+        .then(r=>r.ok?r.arrayBuffer():Promise.reject('동료장학 로드 실패'))
+        .then(buf=>new TextDecoder('utf-8').decode(buf))
     ]);
     const parentRows=parseCSV(pr).map(r=>mapParent(r));
     const peerRows=parseCSV(pe).map(r=>mapPeer(r));
@@ -529,9 +535,9 @@ function viewObs(id){
 }
 
 // ── PDF 출력 ─────────────────────────────────────────
-function pdfOne(){const o=DB.obs.find(x=>x.id===S.curObs);if(o)mkPDF([o]);}
-function pdfSingle(id){const o=DB.obs.find(x=>x.id===id);if(o)mkPDF([o]);}
-function pdfAll(){if(!DB.obs.length){toast('먼저 불러오기를 눌러주세요');return;}mkPDF(S.filt==='all'?DB.obs:DB.obs.filter(o=>o.obsType===S.filt));}
+function pdfOne(){const o=DB.obs.find(x=>x.id===S.curObs);if(o)printObs([o]);}
+function pdfSingle(id){const o=DB.obs.find(x=>x.id===id);if(o)printObs([o]);}
+function pdfAll(){if(!DB.obs.length){toast('먼저 불러오기를 눌러주세요');return;}const _list=S.filt==='all'?DB.obs:DB.obs.filter(o=>o.obsType===S.filt);if(!_list.length){toast('없음');return;}printObs(_list);}
 function pdfByTeacher(){
   if(!DB.obs.length){toast('먼저 불러오기를 눌러주세요');return;}
   const teachers=[...new Set(DB.lessons.map(l=>l.teacher))];
@@ -663,6 +669,8 @@ function lsLoad(){try{const r=localStorage.getItem('chamg_v3');if(r){const d=JSO
 
 // ── CSV 파싱 ──────────────────────────────────────────
 function parseCSV(text){
+  // UTF-8 BOM 제거
+  text = text.replace(/^\uFEFF/, '');
   const lines=text.trim().split('\n');
   if(lines.length<2)return[];
   const headers=parseLine(lines[0]);
@@ -692,8 +700,12 @@ async function loadFromSheets(){
   toast('🔄 불러오는 중...');
   try{
     const [pr,pe]=await Promise.all([
-      fetch(`https://docs.google.com/spreadsheets/d/${SHEETS_ID}/export?format=csv&gid=${PARENT_GID}&t=${Date.now()}`).then(r=>r.ok?r.text():Promise.reject('학부모 로드 실패')),
-      fetch(`https://docs.google.com/spreadsheets/d/${SHEETS_ID}/export?format=csv&gid=${PEER_GID}&t=${Date.now()}`).then(r=>r.ok?r.text():Promise.reject('동료장학 로드 실패'))
+      fetch(`https://docs.google.com/spreadsheets/d/${SHEETS_ID}/export?format=csv&gid=${PARENT_GID}&t=${Date.now()}`)
+        .then(r=>r.ok?r.arrayBuffer():Promise.reject('학부모 로드 실패'))
+        .then(buf=>new TextDecoder('utf-8').decode(buf)),
+      fetch(`https://docs.google.com/spreadsheets/d/${SHEETS_ID}/export?format=csv&gid=${PEER_GID}&t=${Date.now()}`)
+        .then(r=>r.ok?r.arrayBuffer():Promise.reject('동료장학 로드 실패'))
+        .then(buf=>new TextDecoder('utf-8').decode(buf))
     ]);
     const parentRows=parseCSV(pr).map(r=>mapParent(r));
     const peerRows=parseCSV(pe).map(r=>mapPeer(r));
@@ -801,9 +813,9 @@ function viewObs(id){
 }
 
 // ── PDF 출력 ─────────────────────────────────────────
-function pdfOne(){const o=DB.obs.find(x=>x.id===S.curObs);if(o)mkPDF([o]);}
-function pdfSingle(id){const o=DB.obs.find(x=>x.id===id);if(o)mkPDF([o]);}
-function pdfAll(){if(!DB.obs.length){toast('먼저 불러오기를 눌러주세요');return;}mkPDF(S.filt==='all'?DB.obs:DB.obs.filter(o=>o.obsType===S.filt));}
+function pdfOne(){const o=DB.obs.find(x=>x.id===S.curObs);if(o)printObs([o]);}
+function pdfSingle(id){const o=DB.obs.find(x=>x.id===id);if(o)printObs([o]);}
+function pdfAll(){if(!DB.obs.length){toast('먼저 불러오기를 눌러주세요');return;}const _list=S.filt==='all'?DB.obs:DB.obs.filter(o=>o.obsType===S.filt);if(!_list.length){toast('없음');return;}printObs(_list);}
 function pdfByTeacher(){
   if(!DB.obs.length){toast('먼저 불러오기를 눌러주세요');return;}
   const teachers=[...new Set(DB.lessons.map(l=>l.teacher))];
@@ -828,32 +840,6 @@ function registerKoreanFont(doc){
     doc.addFont('Korean.ttf','Korean','normal');
     doc.setFont('Korean','normal');
   }catch(e){}
-}
-function mkPDF(obsArr){
-  const{jsPDF}=window.jspdf;const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});const W=210;const inf=DB.info;
-  obsArr.forEach((o,oi)=>{
-    if(oi>0)doc.addPage();
-    if(o.obsType==='peer'){
-      doc.setFontSize(16);doc.setFont(undefined,'bold');doc.text('수 업  참 관 록',W/2,18,{align:'center'});
-      doc.setFontSize(9);doc.setFont(undefined,'normal');doc.text(`${inf.school||''} | ${inf.title||''}`,W/2,25,{align:'center'});
-      doc.autoTable({startY:30,body:[['과 목 명',o.subject||'','단 원 명',o.unit||''],['수업 교사',o.teacher||'','대상(반)',o.class_||''],['일 시',`${o.date||''} ${o.period||''}`,'',' ']],styles:{fontSize:10,cellPadding:5,font:'Korean'},columnStyles:{0:{fillColor:[216,200,248],fontStyle:'bold',cellWidth:25},2:{fillColor:[216,200,248],fontStyle:'bold',cellWidth:25}},margin:{left:15,right:15}});
-      doc.autoTable({startY:doc.lastAutoTable.finalY+3,body:[['좋았던 점',o.good||''],['내 수업에 활용하고 싶은 점',o.apply||''],['종합 의견',o.opinion||'']],styles:{fontSize:10,cellPadding:6,minCellHeight:28,font:'Korean'},columnStyles:{0:{fillColor:[216,200,248],fontStyle:'bold',cellWidth:42}},margin:{left:15,right:15}});
-      const fy=doc.lastAutoTable.finalY+10;
-      doc.setFontSize(10);doc.text(`참관자: 소속(${o.org||'         '})  직위(${o.pos||'       '})  성명(${o.name})`,15,fy);
-      doc.setFontSize(9);doc.text('서명: ______________________ (인)',W-15,fy,{align:'right'});
-    }else{
-      doc.setFontSize(15);doc.setFont(undefined,'bold');doc.text('학 부 모  수 업  참 관 록',W/2,18,{align:'center'});
-      doc.setFontSize(9);doc.setFont(undefined,'normal');doc.text(`${inf.school||''} | ${inf.title||''}`,W/2,25,{align:'center'});
-      doc.autoTable({startY:30,body:[['학부모명',o.name,'자녀학년·반',`${o.grade||''} ${o.cls||''}`],['참관수업',o.lesson||'','일시',`${o.date||''} ${o.period||''}`]],styles:{fontSize:9,cellPadding:4,font:'Korean'},columnStyles:{0:{fillColor:[216,200,248],fontStyle:'bold',cellWidth:22},2:{fillColor:[216,200,248],fontStyle:'bold',cellWidth:22}},margin:{left:15,right:15}});
-      const ckRows=CKP_ROWS.map((q,i)=>[i+1,q,o.ck?o.ck[i]||'미선택':'미선택']);
-      doc.autoTable({startY:doc.lastAutoTable.finalY+4,head:[['No','평가 항목','응답']],body:ckRows,styles:{fontSize:8,cellPadding:3,font:'Korean'},headStyles:{fillColor:[168,124,236],textColor:[32,12,60],fontStyle:'bold',fontSize:7},columnStyles:{0:{cellWidth:8},1:{cellWidth:140},2:{cellWidth:30}},margin:{left:15,right:15}});
-      if(o.comment){doc.autoTable({startY:doc.lastAutoTable.finalY+3,head:[['참 관 소 감']],body:[[o.comment]],styles:{fontSize:9,cellPadding:5,minCellHeight:20,font:'Korean'},headStyles:{fillColor:[244,184,206],textColor:[32,12,60],fontStyle:'bold'},margin:{left:15,right:15}});}
-      const fy=doc.lastAutoTable.finalY+9;
-      doc.setFontSize(9);doc.text('서명: ______________________ (인)',W-15,fy,{align:'right'});
-    }
-  });
-  doc.save(obsArr.length===1?`참관록_${obsArr[0].name||'참관자'}.pdf`:`전체_참관록_${inf.school||'학교'}.pdf`);
-  toast('✅ PDF 저장 완료');
 }
 
 // ── 기타 ─────────────────────────────────────────────
