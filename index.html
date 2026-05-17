@@ -345,8 +345,9 @@ html,body{height:100%;font-family:'Noto Sans KR',sans-serif;background:var(--bg)
 const PARENT_URL = 'https://docs.google.com/forms/d/e/1FAIpQLSfj4qctzWdLAuTj0ilR3Le85eHO_9GuslVuUE9mUPT4mY7UUQ/viewform';
 const PEER_URL = 'https://docs.google.com/forms/d/e/1FAIpQLSdZxegrA-8ITQlifi12zHFWQ-Jpg8yBQdzb01100y-CwB9UCg/viewform';
 const APP_URL    = location.href.split('?')[0];
-const SID = '1X8Vrnmmy6S53q91rJ9jt5P5JKEUk4JCweX2N8xoE1OU';
-const GID_P = '0';
+const SID_P = '1iehS9w9HMEWVDNzNx4_OeI7s44r1GAl4u0zsZUJ1AmQ';
+const SID_T = '1X8Vrnmmy6S53q91rJ9jt5P5JKEUk4JCweX2N8xoE1OU';
+const GID_P = '1958649509';
 const GID_T = '384448222';
 
 // 학부모 체크리스트 10개
@@ -409,10 +410,11 @@ async function loadSheets(){
   st.textContent='Google Sheets에 연결 중...';
 
   try{
-    const mkUrl=gid=>`https://docs.google.com/spreadsheets/d/${SID}/export?format=csv&gid=${gid}&t=${Date.now()}`;
+    const mkUrlP=`https://docs.google.com/spreadsheets/d/${SID_P}/export?format=csv&gid=${GID_P}&t=${Date.now()}`;
+    const mkUrlT=`https://docs.google.com/spreadsheets/d/${SID_T}/export?format=csv&gid=${GID_T}&t=${Date.now()}`;
     const [bufP,bufT]=await Promise.all([
-      fetch(mkUrl(GID_P)).then(r=>{if(!r.ok)throw new Error('학부모 시트 오류 '+r.status);return r.arrayBuffer();}),
-      fetch(mkUrl(GID_T)).then(r=>{if(!r.ok)throw new Error('동료장학 시트 오류 '+r.status);return r.arrayBuffer();})
+      fetch(mkUrlP).then(r=>{if(!r.ok)throw new Error('학부모 시트 오류 '+r.status);return r.arrayBuffer();}),
+      fetch(mkUrlT).then(r=>{if(!r.ok)throw new Error('동료장학 시트 오류 '+r.status);return r.arrayBuffer();})
     ]);
     const dec=new TextDecoder('utf-8');
 
