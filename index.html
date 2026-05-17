@@ -772,8 +772,46 @@ function swQR(m){
   });
   makeQR();
 }
+function packLessons(){
+  try{
+    const slim={
+      i:{t:DB.info.title||'',s:DB.info.school||'',d:DB.info.date||'',p:DB.info.place||'',m:DB.info.msg||''},
+      l:DB.lessons.map(l=>({id:l.id,t:l.teacher,g:l.grade,c:l.cls,s:l.subject,u:l.unit,tm:l.time||'',r:l.room||'',dr:l.driveUrl||''}))
+    };
+    return btoa(unescape(encodeURIComponent(JSON.stringify(slim))));
+  }catch(e){return '';}
+}
+function unpackLessons(packed){
+  try{
+    const slim=JSON.parse(decodeURIComponent(escape(atob(packed))));
+    if(slim.i){
+      DB.info.title=slim.i.t||DB.info.title;
+      DB.info.school=slim.i.s||DB.info.school;
+      DB.info.date=slim.i.d||DB.info.date;
+      DB.info.place=slim.i.p||DB.info.place;
+      DB.info.msg=slim.i.m||DB.info.msg;
+    }
+    if(slim.l&&slim.l.length>0){
+      DB.lessons=slim.l.map(l=>({
+        id:l.id,teacher:l.t,grade:l.g,cls:l.c,
+        subject:l.s,unit:l.u,time:l.tm||'',
+        room:l.r||'',driveUrl:l.dr||''
+      }));
+    }
+  }catch(e){}
+}
 function makeQR(){
-  const url=S.qrMode==='parent'?PARENT_URL:S.qrMode==='peer'?PEER_URL:APP_URL;
+  // QR에 지도안 데이터를 압축해서 담기
+  const base=APP_URL;
+  const params=new URLSearchParams();
+  if(S.qrMode!=='all') params.set('type',S.qrMode);
+  if(DB.lessons.length>0){
+    const packed=packLessons();
+    if(packed) params.set('d',packed);
+  }
+  const fullUrl=base+(params.toString()?'?'+params.toString():'');
+  // 2000자 초과시 지도안 제외
+  const url=fullUrl.length<=2000?fullUrl:base+(S.qrMode!=='all'?'?type='+S.qrMode:'');
   const box=document.getElementById('qr-box');box.innerHTML='';
   QRCode.toCanvas(document.createElement('canvas'),url,{width:180,margin:1,errorCorrectionLevel:'M',color:{dark:'#200C3C',light:'#fff'}},(err,canvas)=>{
     if(err){box.textContent='QR 실패';return;}
@@ -782,7 +820,11 @@ function makeQR(){
   });
 }
 function shareURL(){
-  const url=S.qrMode==='parent'?PARENT_URL:S.qrMode==='peer'?PEER_URL:APP_URL;
+  const base=APP_URL;
+  const params=new URLSearchParams();
+  if(S.qrMode!=='all') params.set('type',S.qrMode);
+  if(DB.lessons.length>0){const packed=packLessons();if(packed)params.set('d',packed);}
+  const url=base+(params.toString()?'?'+params.toString():'');
   if(navigator.share)navigator.share({title:'수업 참관록',url});
   else navigator.clipboard.writeText(url).then(()=>toast('📋 링크 복사됨'));
 }
@@ -792,7 +834,16 @@ document.querySelectorAll('.ov').forEach(el=>{el.addEventListener('click',e=>{if
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2800);}
 
 // ══ 시작 ══
-lsLoad();renderAll();makeQR();
+lsLoad();
+// URL에서 지도안 데이터 읽기 (QR 스캔시 자동 적용)
+const _urlP=new URLSearchParams(location.search);
+const _packed=_urlP.get('d');
+if(_packed) unpackLessons(_packed);
+// URL 타입 파라미터로 참관록 직접 이동
+const _type=_urlP.get('type');
+renderAll();makeQR();
+if(_type==='parent'){ window.location.href=PARENT_URL; }
+else if(_type==='peer'){ window.location.href=PEER_URL; }
 const _ld=document.getElementById('ldg');
 _ld.classList.add('hide');
 setTimeout(()=>_ld.style.display='none',400);
