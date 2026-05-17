@@ -682,6 +682,10 @@ function prtByTeacher(){
   doPrint(sorted);
 }
 function prtNotice(){
+  // QR 캔버스를 이미지로 변환
+  const qrCanvas = document.querySelector('#qr-box canvas');
+  const qrImg = qrCanvas ? `<img src="${qrCanvas.toDataURL()}" style="width:180px;height:180px;margin:20px auto;display:block">` : '';
+  
   const i=DB.info;
   document.getElementById('prt').innerHTML=`<div class="pp" style="text-align:center;padding:30px 20px">
     <div style="font-size:22pt;font-weight:800;color:#5830A8;margin-bottom:16px">${i.title||'공개수업 안내'}</div>
@@ -691,7 +695,8 @@ function prtNotice(){
       📍 ${i.place||''}<br>
       ${i.msg?'📌 '+i.msg:''}
     </div>
-    <div style="margin-top:30px;font-size:12pt;color:#604880">아래 QR코드를 스캔하시면 참관록을 작성하실 수 있습니다.</div>
+    <div style="margin-top:20px;font-size:12pt;color:#604880">아래 QR코드를 스캔하시면 참관록을 작성하실 수 있습니다.</div>
+    ${qrImg}
   </div>`;
   setTimeout(()=>{window.print();setTimeout(()=>{document.getElementById('prt').innerHTML='';},1500);},200);
 }
